@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Briefcase,
   BookOpen,
   BookText,
@@ -15,12 +16,13 @@ import {
 
 export const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: BookOpen, label: "Recipes", href: "/dashboard/recipes" },
-  { icon: Map, label: "Map", href: "/dashboard/map" },
+  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
   { icon: CheckSquare, label: "Goals", href: "/dashboard/goals" },
   { icon: Clock, label: "Time Tracking", href: "/dashboard/time" },
   { icon: GraduationCap, label: "Skills", href: "/dashboard/skills" },
   { icon: Briefcase, label: "Jobs", href: "/dashboard/jobs" },
+  { icon: BookOpen, label: "Recipes", href: "/dashboard/recipes" },
+  { icon: Map, label: "Map", href: "/dashboard/map" },
   { icon: Newspaper, label: "Blog", href: "/dashboard/blog" },
   { icon: BookText, label: "Stories", href: "/dashboard/stories" },
   { icon: Sparkles, label: "Tech", href: "/dashboard/tech" },

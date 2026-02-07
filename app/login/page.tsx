@@ -8,5 +8,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = (await searchParams) ?? {}
   const nextParam = params.next
   const nextPath = typeof nextParam === "string" ? nextParam : undefined
-  return <LoginClient nextPath={nextPath} />
+  const emailParam = params.email
+  const initialEmail = typeof emailParam === "string" ? emailParam : undefined
+  return <LoginClient nextPath={nextPath} initialEmail={initialEmail} />
 }

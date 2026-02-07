@@ -18,16 +18,28 @@ function sanitizeNextPath(nextPath: string | undefined) {
   return nextPath
 }
 
-export function LoginClient({ nextPath }: { nextPath?: string }) {
+export function LoginClient({
+  nextPath,
+  initialEmail,
+}: {
+  nextPath?: string
+  initialEmail?: string
+}) {
   const router = useRouter()
   const { user, login } = useAuth()
 
   const safeNext = useMemo(() => sanitizeNextPath(nextPath) ?? "/dashboard", [nextPath])
 
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState((initialEmail ?? "").trim().toLowerCase())
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [didSucceed, setDidSucceed] = useState(false)
+
+  useEffect(() => {
+    if (!initialEmail) return
+    setEmail((prev) => (prev.trim().length > 0 ? prev : initialEmail.trim().toLowerCase()))
+  }, [initialEmail])
 
   useEffect(() => {
     if (user) router.replace(safeNext)
@@ -41,6 +53,7 @@ export function LoginClient({ nextPath }: { nextPath?: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setDidSucceed(false)
     setIsSubmitting(true)
     try {
       const res = await login({ email, password })
@@ -48,7 +61,7 @@ export function LoginClient({ nextPath }: { nextPath?: string }) {
         setError(res.error)
         return
       }
-      router.replace(safeNext)
+      setDidSucceed(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -117,8 +130,9 @@ export function LoginClient({ nextPath }: { nextPath?: string }) {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                Log in <ArrowRight className="h-4 w-4 ml-2" />
+              <Button type="submit" className="w-full" disabled={isSubmitting || didSucceed}>
+                {didSucceed ? "Redirecting..." : isSubmitting ? "Logging in..." : "Log in"}{" "}
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </form>
 
@@ -139,4 +153,3 @@ export function LoginClient({ nextPath }: { nextPath?: string }) {
     </div>
   )
 }
-

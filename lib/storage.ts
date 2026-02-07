@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useSyncExternalStore } from "react"
+import { useCallback, useRef, useSyncExternalStore } from "react"
 
 type SetStateAction<T> = T | ((prev: T) => T)
 
@@ -75,7 +75,16 @@ function subscribeToKey(key: string, onStoreChange: () => void) {
 }
 
 export function useLocalStorageJsonState<T>(key: string, fallback: T) {
-  const getSnapshot = () => safeJsonParse<T>(safeGetItem(key), fallback)
+  const cacheRef = useRef<{ raw: string | null; parsed: T } | null>(null)
+
+  const getSnapshot = () => {
+    const raw = safeGetItem(key)
+    const cached = cacheRef.current
+    if (cached && cached.raw === raw) return cached.parsed
+    const parsed = safeJsonParse<T>(raw, fallback)
+    cacheRef.current = { raw, parsed }
+    return parsed
+  }
   const getServerSnapshot = () => fallback
 
   const value = useSyncExternalStore(
@@ -88,12 +97,17 @@ export function useLocalStorageJsonState<T>(key: string, fallback: T) {
     (action: SetStateAction<T>) => {
       const prev = safeJsonParse<T>(safeGetItem(key), fallback)
       const next = typeof action === "function" ? (action as (p: T) => T)(prev) : action
-      safeSetItem(key, JSON.stringify(next))
+      const rawNext = JSON.stringify(next)
+      safeSetItem(key, rawNext)
+      cacheRef.current = { raw: rawNext, parsed: next }
     },
     [fallback, key]
   )
 
-  const remove = useCallback(() => safeRemoveItem(key), [key])
+  const remove = useCallback(() => {
+    safeRemoveItem(key)
+    cacheRef.current = null
+  }, [key])
 
   return [value, setValue, remove] as const
 }
@@ -125,4 +139,3 @@ export function useLocalStorageStringState(key: string, fallback = "") {
 
   return [value, setValue, remove] as const
 }
-

@@ -140,8 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUsers((prev) => [newUser, ...prev])
-      setSessionUserId(newUser.id)
-
       migrateLegacyDashboardData(newUser.id)
 
       return { ok: true }

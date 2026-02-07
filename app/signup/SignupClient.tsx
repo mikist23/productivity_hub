@@ -29,6 +29,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [didSucceed, setDidSucceed] = useState(false)
 
   useEffect(() => {
     if (user) router.replace(safeNext)
@@ -42,6 +43,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setDidSucceed(false)
     setIsSubmitting(true)
     try {
       const res = await signup({ name, email, password })
@@ -49,7 +51,11 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
         setError(res.error)
         return
       }
-      router.replace(safeNext)
+      setDidSucceed(true)
+      const nextLogin = `${loginHref}${loginHref.includes("?") ? "&" : "?"}email=${encodeURIComponent(
+        email.trim().toLowerCase()
+      )}`
+      router.replace(nextLogin)
     } finally {
       setIsSubmitting(false)
     }
@@ -134,8 +140,9 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                Create account <ArrowRight className="h-4 w-4 ml-2" />
+              <Button type="submit" className="w-full" disabled={isSubmitting || didSucceed}>
+                {didSucceed ? "Redirecting..." : isSubmitting ? "Creating..." : "Create account"}{" "}
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </form>
 
@@ -156,4 +163,3 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
     </div>
   )
 }
-

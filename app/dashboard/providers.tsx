@@ -4,6 +4,7 @@ import React, { createContext, useContext } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
 import { useLocalStorageJsonState, useLocalStorageStringState } from "@/lib/storage"
+import { calculateFocusStreaks, getStreakHistory, calculateGoalStreaks, getProductivityInsights } from "@/lib/streaks"
 
 export type SkillStatus = "mastered" | "learning" | "inprogress"
 export type JobStatus = "applied" | "interview" | "offer" | "rejected"
@@ -52,7 +53,18 @@ export interface FocusSession {
     date: string // ISO Date string YYYY-MM-DD
     minutes: number
     label?: string
-    timestamp?: string // ISO string
+    goalId?: string
+    timestamp: string // ISO string
+}
+
+export interface GoalRoadmapItem {
+    id: string
+    title: string
+    done: boolean
+}
+
+export type NewGoalInput = Omit<Goal, "id" | "roadmap"> & {
+    roadmap?: Array<Omit<GoalRoadmapItem, "id">>
 }
 
 // Phase 3: Goals (Enhanced for Kanban)
@@ -64,6 +76,10 @@ export interface Goal {
     status: GoalStatus
     priority: Priority
     category: string
+    targetMinutes?: number
+    roadmap?: GoalRoadmapItem[]
+    createdAt: string
+    completedAt?: string
 }
 
 export interface ActivityLog {
@@ -144,14 +160,18 @@ export interface DashboardContextType {
   deleteTask: (id: string) => void
 
   focusSessions: FocusSession[]
-  addFocusSession: (minutes: number, label?: string) => void
+  addFocusSession: (minutes: number, label?: string, goalId?: string) => void
   todayFocusMinutes: number
 
   // Phase 3
   goals: Goal[]
-  addGoal: (goal: Omit<Goal, "id">) => void
+  addGoal: (goal: NewGoalInput) => void
   updateGoalStatus: (id: string, status: GoalStatus) => void
   updateGoalProgress: (id: string, progress: number) => void
+  addGoalRoadmapItem: (goalId: string, title: string) => void
+  toggleGoalRoadmapItem: (goalId: string, itemId: string) => void
+  removeGoalRoadmapItem: (goalId: string, itemId: string) => void
+  setGoalTargetMinutes: (goalId: string, targetMinutes: number | null) => void
   deleteGoal: (id: string) => void
 
   recentActivities: ActivityLog[]
@@ -174,12 +194,18 @@ export interface DashboardContextType {
   addPost: (post: Omit<Post, "id" | "createdAt" | "updatedAt">) => void
   updatePost: (id: string, updates: Partial<Omit<Post, "id" | "createdAt">>) => void
   deletePost: (id: string) => void
+
+  // Streaks and Analytics
+  focusStreaks: ReturnType<typeof calculateFocusStreaks>
+  goalStreaks: ReturnType<typeof calculateGoalStreaks>
+  streakHistory: ReturnType<typeof getStreakHistory>
+  productivityInsights: ReturnType<typeof getProductivityInsights>
 }
 
 const defaultProfile: UserProfile = {
-  name: "Alex",
-  role: "Product Developer",
-  bio: "Building digital products that matter."
+  name: "",
+  role: "",
+  bio: ""
 }
 
 const emptySkillCategories: SkillCategory[] = []
@@ -208,6 +234,49 @@ function makeId() {
   return Math.random().toString(36).slice(2, 11)
 }
 
+function clampProgress(progress: number) {
+  if (!Number.isFinite(progress)) return 0
+  return Math.max(0, Math.min(100, Math.round(progress)))
+}
+
+function goalRoadmapItems(goal: Goal) {
+  return Array.isArray(goal.roadmap) ? goal.roadmap : []
+}
+
+function goalRoadmapProgress(goal: Goal) {
+  const items = goalRoadmapItems(goal)
+  if (items.length === 0) return null
+  const done = items.filter((i) => i.done).length
+  return clampProgress((done / items.length) * 100)
+}
+
+function goalTrackedMinutes(goalId: string, sessions: FocusSession[]) {
+  return sessions
+    .filter((s) => s.goalId === goalId)
+    .reduce((acc, s) => acc + (Number.isFinite(s.minutes) ? s.minutes : 0), 0)
+}
+
+function goalTimeProgress(goal: Goal, sessions: FocusSession[]) {
+  if (goal.targetMinutes == null) return null
+  const target = Number(goal.targetMinutes)
+  if (!Number.isFinite(target) || target <= 0) return null
+  const tracked = goalTrackedMinutes(goal.id, sessions)
+  return clampProgress((tracked / target) * 100)
+}
+
+function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
+  const roadmap = goalRoadmapProgress(goal)
+  const time = goalTimeProgress(goal, sessions)
+
+  let progress = clampProgress(goal.progress ?? 0)
+  if (roadmap != null) progress = roadmap
+  if (time != null) progress = Math.max(progress, time)
+
+  const status: GoalStatus =
+    progress >= 100 ? "completed" : goal.status === "completed" ? "inprogress" : goal.status
+  return { ...goal, progress, status }
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id ?? "anon"
@@ -217,6 +286,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     storageKey(LEGACY_DASHBOARD_KEYS.profile),
     defaultProfile
   )
+
+  React.useEffect(() => {
+    if (!user) return
+    setUserProfile((prev) => {
+      const prevName = (prev?.name ?? "").trim()
+      if (prevName.length > 0 && prevName.toLowerCase() !== "alex") return prev
+      return { ...prev, name: user.name }
+    })
+  }, [setUserProfile, user])
   const [skills, setSkills] = useLocalStorageJsonState<SkillCategory[]>(
     storageKey(LEGACY_DASHBOARD_KEYS.skills),
     emptySkillCategories
@@ -370,31 +448,62 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setTasks(prev => prev.filter(t => t.id !== id))
   }
 
-  const addFocusSession = (minutes: number, label?: string) => {
+  const addFocusSession = (minutes: number, label?: string, goalId?: string) => {
       const session: FocusSession = {
           id: makeId(),
           date: new Date().toISOString().split('T')[0],
           minutes,
           label: label?.trim() || undefined,
+          goalId: goalId || undefined,
           timestamp: new Date().toISOString(),
       }
+
+      const nextSessionsForCalc = [session, ...focusSessions]
+      let completedTitle: string | null = null
+
       setFocusSessions(prev => [session, ...prev])
+
+      if (goalId) {
+          setGoals(prev => prev.map(g => {
+              if (g.id !== goalId) return g
+              const next = computeGoalDerived(g, nextSessionsForCalc)
+              if (next.progress >= 100 && g.progress < 100) completedTitle = g.title
+              return next
+          }))
+      }
+
+      const goalTitle = goalId ? goals.find((g) => g.id === goalId)?.title : null
       logActivity(
-        label?.trim()
-          ? `Logged ${minutes} minutes of focus: ${label.trim()}`
-          : `Logged ${minutes} minutes of focus`,
+        goalTitle
+          ? `Logged ${minutes} minutes: ${goalTitle}`
+          : label?.trim()
+            ? `Logged ${minutes} minutes of focus: ${label.trim()}`
+            : `Logged ${minutes} minutes of focus`,
         "focus"
       )
+
+      if (completedTitle) logActivity(`Goal Reached: ${completedTitle}!`, "goal")
   }
   
   // --- Goal Methods ---
-  const addGoal = (goal: Omit<Goal, "id">) => {
-      const newGoal: Goal = {
+  const addGoal = (goal: NewGoalInput) => {
+      const roadmap = (goal.roadmap ?? [])
+        .map((i) => ({ id: makeId(), title: i.title.trim(), done: Boolean(i.done) }))
+        .filter((i) => i.title.length > 0)
+
+      const newGoal: Goal = computeGoalDerived(
+        {
           ...goal,
-          id: makeId()
-      }
+          id: makeId(),
+          title: goal.title.trim(),
+          progress: clampProgress(goal.progress ?? 0),
+          roadmap,
+          createdAt: new Date().toISOString()
+        },
+        focusSessions
+      )
       setGoals(prev => [newGoal, ...prev])
-      logActivity(`New Goal: ${goal.title}`, "goal")
+      logActivity(`New Goal: ${newGoal.title}`, "goal")
   }
 
   const updateGoalStatus = (id: string, status: GoalStatus) => {
@@ -403,7 +512,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
               if (g.status !== status) {
                   logActivity(`Moved goal ${g.title} to ${status}`, "goal")
               }
-              return { ...g, status }
+              const next = computeGoalDerived(
+                { ...g, status, progress: status === "completed" ? 100 : g.progress },
+                focusSessions
+              )
+              return next
           }
           return g
       }))
@@ -412,14 +525,59 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const updateGoalProgress = (id: string, progress: number) => {
       setGoals(prev => prev.map(g => {
           if (g.id === id) {
-             if (progress === 100 && g.progress < 100) {
-                 logActivity(`Goal Reached: ${g.title}!`, "goal")
-                 return { ...g, progress, status: 'completed' }
-             }
-             return { ...g, progress }
+             const next = computeGoalDerived(
+               { ...g, progress: clampProgress(progress) },
+               focusSessions
+             )
+             if (next.progress >= 100 && g.progress < 100) logActivity(`Goal Reached: ${g.title}!`, "goal")
+             return next
           }
           return g
       }))
+  }
+
+  const addGoalRoadmapItem = (goalId: string, title: string) => {
+      const trimmed = title.trim()
+      if (!trimmed) return
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const roadmap = [...goalRoadmapItems(g), { id: makeId(), title: trimmed, done: false }]
+          const next = computeGoalDerived({ ...g, roadmap }, focusSessions)
+          return next
+      }))
+  }
+
+  const toggleGoalRoadmapItem = (goalId: string, itemId: string) => {
+      let completedTitle: string | null = null
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const roadmap = goalRoadmapItems(g).map(i => i.id === itemId ? { ...i, done: !i.done } : i)
+          const next = computeGoalDerived({ ...g, roadmap }, focusSessions)
+          if (next.progress >= 100 && g.progress < 100) completedTitle = g.title
+          return next
+      }))
+      if (completedTitle) logActivity(`Goal Reached: ${completedTitle}!`, "goal")
+  }
+
+  const removeGoalRoadmapItem = (goalId: string, itemId: string) => {
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const roadmap = goalRoadmapItems(g).filter(i => i.id !== itemId)
+          const next = computeGoalDerived({ ...g, roadmap }, focusSessions)
+          return next
+      }))
+  }
+
+  const setGoalTargetMinutes = (goalId: string, targetMinutes: number | null) => {
+      const nextTarget = targetMinutes == null ? undefined : Math.max(0, Math.round(targetMinutes))
+      let completedTitle: string | null = null
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const next = computeGoalDerived({ ...g, targetMinutes: nextTarget }, focusSessions)
+          if (next.progress >= 100 && g.progress < 100) completedTitle = g.title
+          return next
+      }))
+      if (completedTitle) logActivity(`Goal Reached: ${completedTitle}!`, "goal")
   }
 
   const deleteGoal = (id: string) => {
@@ -429,6 +587,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const todayFocusMinutes = focusSessions
     .filter(s => s.date === new Date().toISOString().split('T')[0])
     .reduce((acc, s) => acc + s.minutes, 0)
+
+  // --- Streaks and Analytics ---
+  const focusStreaks = calculateFocusStreaks(focusSessions)
+  const goalStreaks = calculateGoalStreaks(goals)
+  const streakHistory = getStreakHistory(focusSessions)
+  const productivityInsights = getProductivityInsights(focusSessions, goals)
 
   // --- Map Pin Methods ---
   const addMapPin = (pin: Omit<MapPin, "id" | "createdAt" | "updatedAt">) => {
@@ -518,7 +682,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       })
   }
 
-  return (
+    return (
     <DashboardContext.Provider value={{
       userProfile,
       updateUserProfile,
@@ -543,6 +707,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       addGoal,
       updateGoalStatus,
       updateGoalProgress,
+      addGoalRoadmapItem,
+      toggleGoalRoadmapItem,
+      removeGoalRoadmapItem,
+      setGoalTargetMinutes,
       deleteGoal,
       recentActivities,
       logActivity,
@@ -559,7 +727,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       posts,
       addPost,
       updatePost,
-      deletePost
+      deletePost,
+      focusStreaks,
+      goalStreaks,
+      streakHistory,
+      productivityInsights
     }}>
       {children}
     </DashboardContext.Provider>

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, type SVGProps } from "react"
 import { motion } from "framer-motion"
 import {
@@ -13,6 +14,7 @@ import {
   MapPin,
   Plus,
   Target,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,13 +22,33 @@ import { useDashboard } from "@/app/dashboard/providers"
 import { TasksModal } from "@/components/dashboard/TasksModal"
 import { FocusModal } from "@/components/dashboard/FocusModal"
 import { AddGoalModal } from "@/components/dashboard/AddGoalModal"
+import { GoalDetailsModal } from "@/components/dashboard/GoalDetailsModal"
+import { InsightsCard } from "@/components/dashboard/InsightsCard"
+import { QuickGoalModal } from "@/components/dashboard/QuickGoalModal"
 import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
-  const { userProfile, focus, setFocus, jobs, skills, tasks, todayFocusMinutes, recentActivities, goals, updateGoalProgress, deleteGoal } = useDashboard()
+  const {
+    userProfile,
+    focus,
+    setFocus,
+    jobs,
+    skills,
+    tasks,
+    focusSessions,
+    todayFocusMinutes,
+    recentActivities,
+    goals,
+    deleteGoal,
+    addGoal,
+    focusStreaks,
+    goalStreaks,
+  } = useDashboard()
   const [isTasksOpen, setIsTasksOpen] = useState(false)
   const [isFocusOpen, setIsFocusOpen] = useState(false)
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  const [isQuickGoalOpen, setIsQuickGoalOpen] = useState(false)
+  const [activeGoalId, setActiveGoalId] = useState<string | null>(null)
 
   // Calculate stats
   const completedTasks = tasks.filter(t => t.completed).length
@@ -36,11 +58,39 @@ export default function DashboardPage() {
   const activeApplications = jobs.filter(j => ['interview', 'applied', 'offer'].includes(j.status)).length
   const focusHours = (todayFocusMinutes / 60).toFixed(1)
 
+  const goalTrackedMinutes = (id: string) =>
+    focusSessions.filter((s) => s.goalId === id).reduce((acc, s) => acc + (s.minutes || 0), 0)
+
+  const last7DaysAvgHours = (() => {
+    const today = new Date()
+    const days = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date(today)
+      d.setDate(d.getDate() - idx)
+      return d.toISOString().split("T")[0]
+    })
+    const byDay = new Map<string, number>()
+    for (const s of focusSessions) byDay.set(s.date, (byDay.get(s.date) ?? 0) + (s.minutes || 0))
+    const total = days.reduce((acc, d) => acc + (byDay.get(d) ?? 0), 0)
+    return (total / 7 / 60).toFixed(1)
+  })()
+
   return (
     <div className="space-y-8">
       <TasksModal isOpen={isTasksOpen} onClose={() => setIsTasksOpen(false)} />
       <FocusModal isOpen={isFocusOpen} onClose={() => setIsFocusOpen(false)} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />
+      <QuickGoalModal 
+        isOpen={isQuickGoalOpen} 
+        onClose={() => setIsQuickGoalOpen(false)} 
+        onAddGoal={addGoal}
+      />
+      {activeGoalId && (
+        <GoalDetailsModal
+          isOpen
+          onClose={() => setActiveGoalId(null)}
+          goalId={activeGoalId}
+        />
+      )}
 
       {/* Header Section */}
       <motion.div 
@@ -76,6 +126,54 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Streaks Section */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-none bg-gradient-to-br from-orange-50 to-red-50 border-orange-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Current Streak</p>
+                <p className="text-3xl font-bold text-orange-700 mt-1">{focusStreaks.currentStreak}</p>
+                <p className="text-xs text-orange-600 mt-1">days in a row 🔥</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-orange-200 flex items-center justify-center">
+                <span className="text-2xl">🔥</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Goals This Week</p>
+                <p className="text-3xl font-bold text-blue-700 mt-1">{goalStreaks.completedThisWeek}</p>
+                <p className="text-xs text-blue-600 mt-1">completed goals</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-blue-200 flex items-center justify-center">
+                <span className="text-2xl">🎯</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Active Days</p>
+                <p className="text-3xl font-bold text-green-700 mt-1">{focusStreaks.weeklyGoalDays}/7</p>
+                <p className="text-xs text-green-600 mt-1">days this week</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-green-200 flex items-center justify-center">
+                <span className="text-2xl">📅</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Quick Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -104,7 +202,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{focusHours}</div>
-                <p className="text-xs text-muted-foreground mb-3">Daily average: 2.5h</p>
+                <p className="text-xs text-muted-foreground mb-3">7-day average: {last7DaysAvgHours}h</p>
                 <Button 
                     variant="outline" 
                     size="sm" 
@@ -144,51 +242,110 @@ export default function DashboardPage() {
          <Card className="col-span-4">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Goal Progress</CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setIsGoalModalOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Goal
-                </Button>
+                <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setIsQuickGoalOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" /> Quick Add
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setIsGoalModalOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" /> Advanced
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
-                 {goals.length === 0 ? (
+                 {goals.filter((g) => g.status !== "completed").length === 0 ? (
                     <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border/50 rounded-lg">
                         <p>No active goals.</p>
-                        <p className="text-xs">Set a long-term goal to track progress.</p>
+                        <p className="text-xs">Create a goal and add a roadmap to track progress.</p>
                     </div>
                  ) : (
-                     <div className="space-y-6">
-                         {goals.map(goal => (
-                             <div key={goal.id} className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{goal.title}</span>
-                                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full border", 
-                                            goal.priority === 'high' ? "bg-red-50 text-red-600 border-red-100" :
-                                            goal.priority === 'medium' ? "bg-yellow-50 text-yellow-600 border-yellow-100" :
-                                            "bg-blue-50 text-blue-600 border-blue-100"
-                                        )}>{goal.priority}</span>
-                                    </div>
-                                    <span className="text-muted-foreground">{goal.progress}%</span>
-                                </div>
-                                <div className="h-2 bg-secondary rounded-full overflow-hidden cursor-pointer group relative">
-                                    <div 
-                                        className="h-full bg-primary transition-all duration-500" 
-                                        style={{ width: `${goal.progress}%` }} 
-                                    />
-                                    {/* Invisible slider for interaction */}
-                                    <input 
-                                        type="range" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        min="0" max="100"
-                                        value={goal.progress}
-                                        onChange={(e) => updateGoalProgress(goal.id, Number(e.target.value))}
-                                    />
-                                </div>
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Target: {new Date(goal.targetDate).toLocaleDateString()}</span>
-                                    <button onClick={() => deleteGoal(goal.id)} className="hover:text-destructive">Remove</button>
-                                </div>
-                             </div>
-                         ))}
+                     <div className="space-y-3">
+                         {goals
+                           .filter((g) => g.status !== "completed")
+                           .slice(0, 6)
+                           .map((goal) => {
+                             const steps = goal.roadmap ?? []
+                             const doneSteps = steps.filter((s) => s.done).length
+                             const tracked = goalTrackedMinutes(goal.id)
+                             return (
+                               <div
+                                 key={goal.id}
+                                 className="rounded-xl border border-border bg-card p-4 hover:bg-accent/30 transition-colors cursor-pointer"
+                                 onClick={() => setActiveGoalId(goal.id)}
+                                 role="button"
+                                 tabIndex={0}
+                                 onKeyDown={(e) => {
+                                   if (e.key === "Enter" || e.key === " ") setActiveGoalId(goal.id)
+                                 }}
+                               >
+                                 <div className="flex items-start justify-between gap-3">
+                                   <div className="min-w-0 space-y-1">
+                                     <div className="flex items-center gap-2">
+                                       <span className="font-medium truncate">{goal.title}</span>
+                                       <span
+                                         className={cn(
+                                           "text-[10px] px-2 py-0.5 rounded-full border",
+                                           goal.priority === "high"
+                                             ? "bg-red-50 text-red-600 border-red-100"
+                                             : goal.priority === "medium"
+                                               ? "bg-yellow-50 text-yellow-600 border-yellow-100"
+                                               : "bg-blue-50 text-blue-600 border-blue-100"
+                                         )}
+                                       >
+                                         {goal.priority}
+                                       </span>
+                                     </div>
+                                     <div className="text-xs text-muted-foreground">
+                                       {goal.targetMinutes ? (
+                                         <>
+                                           Time: {Math.round((tracked / 60) * 10) / 10}h /{" "}
+                                           {Math.round((goal.targetMinutes / 60) * 10) / 10}h
+                                         </>
+                                       ) : steps.length > 0 ? (
+                                         <>
+                                           Roadmap: {doneSteps}/{steps.length} steps
+                                         </>
+                                       ) : (
+                                         <>Target: {new Date(goal.targetDate).toLocaleDateString()}</>
+                                       )}
+                                     </div>
+                                   </div>
+
+                                   <div className="flex items-center gap-2 shrink-0">
+                                     <span className="text-sm text-muted-foreground">{goal.progress}%</span>
+                                     <Button
+                                       size="icon"
+                                       variant="ghost"
+                                       className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                       onClick={(e) => {
+                                         e.stopPropagation()
+                                         const ok = window.confirm(`Delete goal: "${goal.title}"?`)
+                                         if (!ok) return
+                                         deleteGoal(goal.id)
+                                       }}
+                                       aria-label="Delete goal"
+                                     >
+                                       <Trash2 className="h-4 w-4" />
+                                     </Button>
+                                   </div>
+                                 </div>
+
+                                 <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
+                                   <div
+                                     className="h-full bg-primary transition-all duration-500"
+                                     style={{ width: `${goal.progress}%` }}
+                                   />
+                                 </div>
+                               </div>
+                             )
+                           })}
+
+                         <div className="pt-1 flex justify-end">
+                           <Link href="/dashboard/goals">
+                             <Button variant="ghost" size="sm">
+                               View all goals
+                             </Button>
+                           </Link>
+                         </div>
                      </div>
                  )}
             </CardContent>
@@ -229,6 +386,8 @@ export default function DashboardPage() {
              </CardContent>
          </Card>
        </div>
+
+      <InsightsCard focusSessions={focusSessions} />
     </div>
   )
 }

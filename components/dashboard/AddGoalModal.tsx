@@ -5,6 +5,7 @@ import { useDashboard, GoalStatus, Priority } from "@/app/dashboard/providers"
 import { Modal } from "@/components/ui/modal"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 
@@ -20,24 +21,42 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
   const [targetDate, setTargetDate] = useState("")
   const [category, setCategory] = useState("Personal")
   const [priority, setPriority] = useState<Priority>("medium")
+  const [targetHours, setTargetHours] = useState<string>("")
+  const [roadmapText, setRoadmapText] = useState<string>("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title) return
+
+    const hours = Number(targetHours)
+    const targetMinutes =
+      targetHours.trim().length === 0 || !Number.isFinite(hours) || hours <= 0
+        ? undefined
+        : Math.round(hours * 60)
+
+    const roadmap = roadmapText
+      .split(/\r?\n/g)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((t) => ({ title: t, done: false }))
     
     addGoal({
-        title,
-        targetDate: targetDate || new Date().toISOString(),
+        title: title.trim(),
+        targetDate: targetDate || new Date().toISOString().split("T")[0],
         progress: 0,
         status: defaultStatus,
         category,
-        priority
+        priority,
+        targetMinutes,
+        roadmap
     })
     
     setTitle("")
     setTargetDate("")
     setCategory("Personal")
     setPriority("medium")
+    setTargetHours("")
+    setRoadmapText("")
     onClose()
   }
 
@@ -96,6 +115,42 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
+            />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="goal-hours">Target Hours (Optional)</Label>
+                <Input
+                    id="goal-hours"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.25"
+                    value={targetHours}
+                    onChange={(e) => setTargetHours(e.target.value)}
+                    placeholder="e.g. 4"
+                />
+                <p className="text-xs text-muted-foreground">
+                    If set, logging time can auto-complete this goal.
+                </p>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="goal-roadmap">Roadmap (Optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                    Add project steps to auto-calculate progress.
+                </p>
+            </div>
+        </div>
+
+        <div className="space-y-2">
+            <Label htmlFor="goal-roadmap-text">Roadmap steps</Label>
+            <Textarea
+                id="goal-roadmap-text"
+                value={roadmapText}
+                onChange={(e) => setRoadmapText(e.target.value)}
+                placeholder={"One per line.\nExample:\nLanding page\nAuth\nDashboard\nDeploy"}
+                rows={5}
             />
         </div>
 

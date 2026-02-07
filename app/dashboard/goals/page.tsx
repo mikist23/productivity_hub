@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useDashboard, GoalStatus } from "@/app/dashboard/providers"
 import { AddGoalModal } from "@/components/dashboard/AddGoalModal"
+import { GoalDetailsModal } from "@/components/dashboard/GoalDetailsModal"
 
 export default function GoalsPage() {
   const { goals, deleteGoal, updateGoalStatus } = useDashboard()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [targetStatus, setTargetStatus] = useState<GoalStatus>('todo')
+  const [activeGoalId, setActiveGoalId] = useState<string | null>(null)
 
   const openAddModal = (status: GoalStatus = 'todo') => {
       setTargetStatus(status)
@@ -32,6 +34,13 @@ export default function GoalsPage() {
         onClose={() => setIsModalOpen(false)} 
         defaultStatus={targetStatus}
       />
+      {activeGoalId && (
+        <GoalDetailsModal
+          isOpen
+          onClose={() => setActiveGoalId(null)}
+          goalId={activeGoalId}
+        />
+      )}
 
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
@@ -74,7 +83,15 @@ export default function GoalsPage() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: index * 0.05 }}
                         >
-                            <Card className="hover:shadow-md transition-shadow group relative border-accent/60">
+                            <Card
+                              className="hover:shadow-md transition-shadow group relative border-accent/60 cursor-pointer"
+                              onClick={() => setActiveGoalId(goal.id)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") setActiveGoalId(goal.id)
+                              }}
+                            >
                                 <CardContent className="p-4 space-y-3">
                                     <div className="flex justify-between items-start">
                                         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium border",
@@ -91,12 +108,28 @@ export default function GoalsPage() {
                                              {col.id !== 'completed' && (
                                                  <Button 
                                                     variant="ghost" size="icon" className="h-6 w-6"
-                                                    onClick={() => updateGoalStatus(goal.id, col.id === 'todo' ? 'inprogress' : 'completed')}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      updateGoalStatus(
+                                                        goal.id,
+                                                        col.id === "todo" ? "inprogress" : "completed"
+                                                      )
+                                                    }}
                                                  >
                                                      <CheckCircle2 className="h-3 w-3" />
                                                  </Button>
                                              )}
-                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => deleteGoal(goal.id)}>
+                                             <Button
+                                               variant="ghost"
+                                               size="icon"
+                                               className="h-6 w-6 text-destructive hover:text-destructive"
+                                               onClick={(e) => {
+                                                 e.stopPropagation()
+                                                 const ok = window.confirm(`Delete goal: "${goal.title}"?`)
+                                                 if (!ok) return
+                                                 deleteGoal(goal.id)
+                                               }}
+                                             >
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
                                         </div>
@@ -109,6 +142,25 @@ export default function GoalsPage() {
                                             goal.priority === "low" && "bg-blue-500",
                                         )} />
                                         <span className="text-xs text-muted-foreground capitalize">{goal.priority} Priority</span>
+                                    </div>
+
+                                    <div className="space-y-1 pt-1">
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Progress</span>
+                                        <span>{goal.progress}%</span>
+                                      </div>
+                                      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                                        <div
+                                          className="h-full bg-primary transition-all"
+                                          style={{ width: `${goal.progress}%` }}
+                                        />
+                                      </div>
+                                      {(goal.roadmap?.length ?? 0) > 0 && (
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {(goal.roadmap ?? []).filter((s) => s.done).length}/
+                                          {(goal.roadmap ?? []).length} steps complete
+                                        </div>
+                                      )}
                                     </div>
                                 </CardContent>
                             </Card>
