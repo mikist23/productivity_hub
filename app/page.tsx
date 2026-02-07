@@ -1,65 +1,238 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import Link from "next/link"
+import { motion } from "framer-motion"
+import {
+  ArrowRight,
+  BookOpen,
+  Briefcase,
+  Clock,
+  GraduationCap,
+  MapPin,
+  Newspaper,
+  Target,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { useAuth } from "@/components/auth/AuthProvider"
+import { cn } from "@/lib/utils"
+
+const features = [
+  {
+    title: "Recipes",
+    description: "Save your own recipes and pull ideas from free sources.",
+    icon: BookOpen,
+  },
+  {
+    title: "Goals",
+    description: "Track multi-month goals with progress and priorities.",
+    icon: Target,
+  },
+  {
+    title: "Time",
+    description: "Log focus sessions and keep your day on track.",
+    icon: Clock,
+  },
+  {
+    title: "Skills",
+    description: "Track what you’re learning and improve consistently.",
+    icon: GraduationCap,
+  },
+  {
+    title: "Jobs",
+    description: "Manage applications and build a daily apply habit.",
+    icon: Briefcase,
+  },
+  {
+    title: "Map",
+    description: "Pin places related to goals, tasks, jobs, or life.",
+    icon: MapPin,
+  },
+  {
+    title: "Blog",
+    description: "Write posts and keep notes on what you’re building.",
+    icon: Newspaper,
+  },
+] as const
+
+export default function LandingPage() {
+  const { user } = useAuth()
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border/50">
+        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 font-bold tracking-tight">
+            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+              M
+            </div>
+            <span>MapMonet</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Link href="/dashboard">
+                <Button>
+                  Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link href="/signup">
+                  <Button>
+                    Get started <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-6 py-12 md:py-16 space-y-12">
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid gap-10 lg:grid-cols-2 items-center"
+        >
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-accent/30 px-3 py-1 text-xs text-muted-foreground">
+              Free • Local-first • No subscriptions
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+              Your personal productivity hub — goals, time, skills, jobs, recipes, and more.
+            </h1>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              MapMonet is built to stay free: your data is stored locally in your browser, with
+              backup/export so you’re never locked in.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {user ? (
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full">
+                    Open Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/signup" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full">
+                      Create account <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link href="/login" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full">
+                      Log in
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Note: current login is local-first (per-device). Add cloud sync later if you want.
+            </div>
+          </div>
+
+          <Card className="border-border/60">
+            <CardContent className="p-6 md:p-8 space-y-4">
+              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                What you get
+              </div>
+              <div className="grid gap-3">
+                {[
+                  "Daily tasks + focus logging",
+                  "Goal tracking with progress",
+                  "Skills learning tracker",
+                  "Job application pipeline",
+                  "Recipes (personal + import)",
+                  "Personal map pins",
+                  "Backup/export + restore",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <div className="text-sm">{item}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-4 border-t border-border/60 text-xs text-muted-foreground">
+                Everything uses free/open-source libraries. No paid APIs required for the core
+                app.
+              </div>
+            </CardContent>
+          </Card>
+        </motion.section>
+
+        <section className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Pages & features</h2>
+            <p className="text-muted-foreground">
+              Designed to be modular so you can evolve it over time.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f) => (
+              <Card key={f.title} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6 space-y-3">
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center"
+                    )}
+                  >
+                    <f.icon className="h-5 w-5" />
+                  </div>
+                  <div className="font-semibold">{f.title}</div>
+                  <div className="text-sm text-muted-foreground">{f.description}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-accent/20 p-6 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold">Ready to start?</h3>
+              <p className="text-sm text-muted-foreground">
+                Create a local account and begin building your routine.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {user ? (
+                <Link href="/dashboard">
+                  <Button>
+                    Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline">Log in</Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button>
+                      Create account <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t border-border/50 py-10">
+        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} MapMonet • Built to stay free
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Tip: Use <span className="font-medium">Settings → Download Backup</span> regularly.
+          </div>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
+
