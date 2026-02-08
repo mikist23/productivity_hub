@@ -6,8 +6,7 @@ import { X, Plus, Target, Clock, Trophy, Zap, BookOpen, Briefcase, Heart } from 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { LegacySelect } from "@/components/ui/legacy-select"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
@@ -70,7 +69,6 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium")
   const [targetHours, setTargetHours] = useState(20)
   const [roadmapSteps, setRoadmapSteps] = useState([""])
-  const [showSuggestions, setShowSuggestions] = useState(false)
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -130,13 +128,11 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
     setPriority("medium")
     setTargetHours(20)
     setRoadmapSteps([""])
-    setShowSuggestions(false)
     onClose()
   }
 
   const handleSuggestionClick = (suggestion: string) => {
     setTitle(suggestion)
-    setShowSuggestions(false)
   }
 
   if (!isOpen) return null
@@ -179,7 +175,7 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
             {/* Goal Templates */}
             <div>
               <Label className="text-sm font-medium mb-3 block">Quick Start Templates</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {goalTemplates.map((template) => {
                   const Icon = template.icon
                   return (
@@ -215,30 +211,9 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
                 value={title}
                 onChange={(e) => {
                   setTitle(e.target.value)
-                  setShowSuggestions(e.target.value.length > 0 && e.target.value.length < 10)
                 }}
                 className="text-base"
               />
-              {showSuggestions && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10"
-                >
-                  <div className="p-2">
-                    <div className="text-xs text-muted-foreground mb-2 px-2">Suggestions:</div>
-                    {suggestedGoals.slice(0, 4).map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded transition-colors"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
             </div>
 
             {/* Category and Priority */}
@@ -247,34 +222,25 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
                 <Label htmlFor="category" className="text-sm font-medium mb-2 block">
                   Category
                 </Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="skill">Skill Development</SelectItem>
-                    <SelectItem value="career">Career</SelectItem>
-                    <SelectItem value="health">Health & Fitness</SelectItem>
-                    <SelectItem value="personal">Personal Growth</SelectItem>
-                    <SelectItem value="general">General</SelectItem>
-                  </SelectContent>
-                </Select>
+                <LegacySelect value={category} onValueChange={setCategory}>
+                  <option value="">Choose category</option>
+                  <option value="skill">Skill Development</option>
+                  <option value="career">Career</option>
+                  <option value="health">Health & Fitness</option>
+                  <option value="personal">Personal Growth</option>
+                  <option value="general">General</option>
+                </LegacySelect>
               </div>
 
               <div>
                 <Label htmlFor="priority" className="text-sm font-medium mb-2 block">
                   Priority
                 </Label>
-                <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">🔴 High Priority</SelectItem>
-                    <SelectItem value="medium">🟡 Medium Priority</SelectItem>
-                    <SelectItem value="low">🟢 Low Priority</SelectItem>
-                  </SelectContent>
-                </Select>
+                <LegacySelect value={priority} onValueChange={(value: string) => setPriority(value as 'high' | 'medium' | 'low')}>
+                  <option value="high">🔴 High Priority</option>
+                  <option value="medium">🟡 Medium Priority</option>
+                  <option value="low">🟢 Low Priority</option>
+                </LegacySelect>
               </div>
             </div>
 
@@ -298,44 +264,6 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
               <p className="text-xs text-muted-foreground mt-1">
                 Estimated time to complete this goal
               </p>
-            </div>
-
-            {/* Roadmap Steps */}
-            <div>
-              <Label className="text-sm font-medium mb-3 block">
-                Roadmap Steps (Optional)
-              </Label>
-              <div className="space-y-2">
-                {roadmapSteps.map((step, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder={`Step ${index + 1}: Describe the milestone...`}
-                      value={step}
-                      onChange={(e) => handleUpdateStep(index, e.target.value)}
-                      className="flex-1"
-                    />
-                    {roadmapSteps.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveStep(index)}
-                        className="shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddStep}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Step
-                </Button>
-              </div>
             </div>
 
             {/* Quick Actions */}

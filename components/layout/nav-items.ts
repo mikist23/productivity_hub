@@ -7,6 +7,7 @@ import {
   Clock,
   GraduationCap,
   LayoutDashboard,
+  LogOut,
   Map,
   Newspaper,
   Settings,
@@ -29,3 +30,10 @@ export const navItems = [
   { icon: User, label: "Profile", href: "/dashboard/profile" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ] as const
+
+export const authNavItem = { 
+  icon: LogOut, 
+  label: "Sign out", 
+  href: "#signout",
+  isSignOut: true 
+} as const
