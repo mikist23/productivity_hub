@@ -63,8 +63,17 @@ export interface GoalRoadmapItem {
     done: boolean
 }
 
-export type NewGoalInput = Omit<Goal, "id" | "roadmap"> & {
+// Phase 4: Daily Targets
+export interface DailyTarget {
+    date: string        // YYYY-MM-DD
+    targetMinutes: number
+    actualMinutes: number  // Track actual time spent
+    isComplete: boolean
+}
+
+export type NewGoalInput = Omit<Goal, "id" | "roadmap" | "dailyTargets"> & {
     roadmap?: Array<Omit<GoalRoadmapItem, "id">>
+    dailyTargets?: Array<Omit<DailyTarget, "actualMinutes" | "isComplete">>
 }
 
 // Phase 3: Goals (Enhanced for Kanban)
@@ -80,6 +89,8 @@ export interface Goal {
     roadmap?: GoalRoadmapItem[]
     createdAt: string
     completedAt?: string
+    dailyTargets?: DailyTarget[]  // Array of daily targets
+    useDailyTargets: boolean      // Toggle between total vs daily mode
 }
 
 export interface ActivityLog {
@@ -174,6 +185,13 @@ export interface DashboardContextType {
   setGoalTargetMinutes: (goalId: string, targetMinutes: number | null) => void
   deleteGoal: (id: string) => void
 
+  // Phase 4: Daily Targets
+  getTodayTarget: (goalId: string) => DailyTarget | null
+  getGoalProgressForDate: (goalId: string, date: string) => number
+  updateDailyTarget: (goalId: string, date: string, minutes: number) => void
+  setGoalDailyTargets: (goalId: string, dailyTargets: Omit<DailyTarget, "actualMinutes" | "isComplete">[]) => void
+  toggleGoalUseDailyTargets: (goalId: string, useDailyTargets: boolean) => void
+
   recentActivities: ActivityLog[]
   logActivity: (text: string, type: ActivityLog["type"]) => void
 
@@ -256,6 +274,12 @@ function goalTrackedMinutes(goalId: string, sessions: FocusSession[]) {
     .reduce((acc, s) => acc + (Number.isFinite(s.minutes) ? s.minutes : 0), 0)
 }
 
+function goalTrackedMinutesForDate(goalId: string, date: string, sessions: FocusSession[]) {
+  return sessions
+    .filter((s) => s.goalId === goalId && s.date === date)
+    .reduce((acc, s) => acc + (Number.isFinite(s.minutes) ? s.minutes : 0), 0)
+}
+
 function goalTimeProgress(goal: Goal, sessions: FocusSession[]) {
   if (goal.targetMinutes == null) return null
   const target = Number(goal.targetMinutes)
@@ -264,13 +288,30 @@ function goalTimeProgress(goal: Goal, sessions: FocusSession[]) {
   return clampProgress((tracked / target) * 100)
 }
 
+function goalDailyProgress(goal: Goal, sessions: FocusSession[]) {
+  if (!goal.useDailyTargets || !goal.dailyTargets || goal.dailyTargets.length === 0) return null
+  
+  const today = new Date().toISOString().split('T')[0]
+  const todayTarget = goal.dailyTargets.find(dt => dt.date === today)
+  
+  if (!todayTarget) return null
+  
+  const tracked = goalTrackedMinutesForDate(goal.id, today, sessions)
+  const target = Number(todayTarget.targetMinutes)
+  
+  if (!Number.isFinite(target) || target <= 0) return null
+  return clampProgress((tracked / target) * 100)
+}
+
 function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
   const roadmap = goalRoadmapProgress(goal)
   const time = goalTimeProgress(goal, sessions)
+  const daily = goalDailyProgress(goal, sessions)
 
   let progress = clampProgress(goal.progress ?? 0)
   if (roadmap != null) progress = roadmap
   if (time != null) progress = Math.max(progress, time)
+  if (daily != null) progress = Math.max(progress, daily)
 
   const status: GoalStatus =
     progress >= 100 ? "completed" : goal.status === "completed" ? "inprogress" : goal.status
@@ -467,6 +508,24 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           setGoals(prev => prev.map(g => {
               if (g.id !== goalId) return g
               const next = computeGoalDerived(g, nextSessionsForCalc)
+              
+              // Update daily target if applicable
+              if (g.useDailyTargets && g.dailyTargets) {
+                  const today = new Date().toISOString().split('T')[0]
+                  const todayTargetIndex = g.dailyTargets.findIndex(dt => dt.date === today)
+                  if (todayTargetIndex >= 0) {
+                      const updatedTargets = [...g.dailyTargets]
+                      const currentActual = updatedTargets[todayTargetIndex].actualMinutes
+                      const newActual = currentActual + minutes
+                      updatedTargets[todayTargetIndex] = {
+                          ...updatedTargets[todayTargetIndex],
+                          actualMinutes: newActual,
+                          isComplete: newActual >= updatedTargets[todayTargetIndex].targetMinutes
+                      }
+                      return { ...next, dailyTargets: updatedTargets }
+                  }
+              }
+              
               if (next.progress >= 100 && g.progress < 100) completedTitle = g.title
               return next
           }))
@@ -490,6 +549,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const roadmap = (goal.roadmap ?? [])
         .map((i) => ({ id: makeId(), title: i.title.trim(), done: Boolean(i.done) }))
         .filter((i) => i.title.length > 0)
+      
+      const dailyTargets = (goal.dailyTargets ?? [])
+        .map((dt) => ({ 
+          ...dt, 
+          actualMinutes: 0, 
+          isComplete: false 
+        }))
 
       const newGoal: Goal = computeGoalDerived(
         {
@@ -498,6 +564,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           title: goal.title.trim(),
           progress: clampProgress(goal.progress ?? 0),
           roadmap,
+          dailyTargets,
+          useDailyTargets: goal.useDailyTargets ?? false,
           createdAt: new Date().toISOString()
         },
         focusSessions
@@ -582,6 +650,77 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const deleteGoal = (id: string) => {
       setGoals(prev => prev.filter(g => g.id !== id))
+  }
+
+  // --- Daily Targets Methods ---
+  const getTodayTarget = (goalId: string): DailyTarget | null => {
+      const goal = goals.find(g => g.id === goalId)
+      if (!goal || !goal.useDailyTargets || !goal.dailyTargets) return null
+      
+      const today = new Date().toISOString().split('T')[0]
+      return goal.dailyTargets.find(dt => dt.date === today) || null
+  }
+
+  const getGoalProgressForDate = (goalId: string, date: string): number => {
+      const goal = goals.find(g => g.id === goalId)
+      if (!goal) return 0
+      
+      if (goal.useDailyTargets && goal.dailyTargets) {
+          const dateTarget = goal.dailyTargets.find(dt => dt.date === date)
+          if (!dateTarget) return 0
+          const tracked = goalTrackedMinutesForDate(goalId, date, focusSessions)
+          return clampProgress((tracked / dateTarget.targetMinutes) * 100)
+      } else if (goal.targetMinutes) {
+          const tracked = goalTrackedMinutesForDate(goalId, date, focusSessions)
+          return clampProgress((tracked / goal.targetMinutes) * 100)
+      }
+      
+      return 0
+  }
+
+  const updateDailyTarget = (goalId: string, date: string, minutes: number) => {
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          
+          const updatedTargets = [...(g.dailyTargets || [])]
+          const targetIndex = updatedTargets.findIndex(dt => dt.date === date)
+          
+          if (targetIndex >= 0) {
+              updatedTargets[targetIndex] = {
+                  ...updatedTargets[targetIndex],
+                  actualMinutes: Math.max(0, minutes)
+              }
+          } else {
+              updatedTargets.push({
+                  date,
+                  targetMinutes: 60, // Default target
+                  actualMinutes: Math.max(0, minutes),
+                  isComplete: false
+              })
+          }
+          
+          return { ...g, dailyTargets: updatedTargets }
+      }))
+  }
+
+  const setGoalDailyTargets = (goalId: string, dailyTargets: Omit<DailyTarget, "actualMinutes" | "isComplete">[]) => {
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const targetsWithProgress = dailyTargets.map(dt => ({
+              ...dt,
+              actualMinutes: goalTrackedMinutesForDate(goalId, dt.date, focusSessions),
+              isComplete: goalTrackedMinutesForDate(goalId, dt.date, focusSessions) >= dt.targetMinutes
+          }))
+          return { ...g, dailyTargets: targetsWithProgress }
+      }))
+  }
+
+  const toggleGoalUseDailyTargets = (goalId: string, useDailyTargets: boolean) => {
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const next = computeGoalDerived({ ...g, useDailyTargets }, focusSessions)
+          return next
+      }))
   }
 
   const todayFocusMinutes = focusSessions
@@ -712,6 +851,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       removeGoalRoadmapItem,
       setGoalTargetMinutes,
       deleteGoal,
+      getTodayTarget,
+      getGoalProgressForDate,
+      updateDailyTarget,
+      setGoalDailyTargets,
+      toggleGoalUseDailyTargets,
       recentActivities,
       logActivity,
       mapPins,

@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowRight, Lock, Mail, Chrome, Sparkles, Target, Clock, Zap, CheckCircle2 } from "lucide-react"
+import { ArrowRight, Lock, Mail, Chrome, Sparkles, Target, Clock, Zap, CheckCircle2, AlertCircle } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
@@ -35,6 +35,7 @@ export function LoginClient({
   initialEmail?: string
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, login, isLoading } = useAuth()
 
   const safeNext = useMemo(() => sanitizeNextPath(nextPath) ?? "/dashboard", [nextPath])
@@ -44,6 +45,7 @@ export function LoginClient({
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [didSucceed, setDidSucceed] = useState(false)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!initialEmail) return
@@ -53,6 +55,22 @@ export function LoginClient({
   useEffect(() => {
     if (user) router.replace(safeNext)
   }, [router, safeNext, user])
+
+  // Check for OAuth errors
+  useEffect(() => {
+    const errorParam = searchParams.get("error")
+    if (errorParam) {
+      if (errorParam === "OAuthAccountNotLinked") {
+        setGoogleError("This email is already registered with a different sign-in method.")
+      } else if (errorParam === "OAuthSignin" || errorParam === "OAuthCallback") {
+        setGoogleError("Google sign-in failed. Please check your Google OAuth configuration.")
+      } else if (errorParam === "Configuration") {
+        setGoogleError("Authentication is not properly configured. Please contact support.")
+      } else {
+        setGoogleError(`Sign-in error: ${errorParam}`)
+      }
+    }
+  }, [searchParams])
 
   const signupHref = useMemo(() => {
     if (!safeNext || safeNext === "/dashboard") return "/signup"
@@ -77,6 +95,7 @@ export function LoginClient({
   }
 
   const handleGoogleSignIn = () => {
+    setGoogleError(null)
     signIn("google", { callbackUrl: safeNext })
   }
 
@@ -174,6 +193,23 @@ export function LoginClient({
                   Sign in to continue your journey
                 </p>
               </div>
+
+              {googleError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-300 flex items-start gap-3"
+                >
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Google Sign-in Issue</p>
+                    <p className="text-amber-600/80 dark:text-amber-400/80">{googleError}</p>
+                    <p className="text-xs mt-2 text-amber-600/60 dark:text-amber-400/60">
+                      Make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your .env.local file
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
               {error && (
                 <motion.div

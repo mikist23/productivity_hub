@@ -2,13 +2,34 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Target, Clock, Trophy, Zap, BookOpen, Briefcase, Heart, ChevronDown, ChevronUp, Trash2, Sparkles, Lightbulb } from "lucide-react"
+import { 
+  X, 
+  Plus, 
+  Target, 
+  Clock, 
+  Trophy, 
+  Zap, 
+  BookOpen, 
+  Briefcase, 
+  Heart, 
+  ChevronDown, 
+  ChevronUp, 
+  Trash2, 
+  Sparkles, 
+  Lightbulb,
+  Calendar,
+  Repeat,
+  CheckCircle2,
+  ToggleLeft,
+  ToggleRight
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LegacySelect } from "@/components/ui/legacy-select"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import type { DailyTarget } from "@/app/dashboard/providers"
 
 interface EnhancedAddGoalModalProps {
   isOpen: boolean
@@ -68,6 +89,14 @@ const suggestedGoals = [
   "Launch a SaaS product"
 ]
 
+const repeatPatterns = [
+  { label: "No repeat", value: "none" },
+  { label: "Everyday", value: "daily" },
+  { label: "Weekdays", value: "weekdays" },
+  { label: "Weekends", value: "weekends" },
+  { label: "Custom", value: "custom" }
+]
+
 export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAddGoalModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<typeof goalTemplates[0] | null>(null)
   const [title, setTitle] = useState("")
@@ -78,7 +107,18 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
   const [roadmapSteps, setRoadmapSteps] = useState<{id: string; title: string}[]>([{id: '1', title: ''}])
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showRoadmap, setShowRoadmap] = useState(false)
-
+  
+  // Daily targets state
+  const [useDailyTargets, setUseDailyTargets] = useState(false)
+  const [dailyTargets, setDailyTargets] = useState<Array<{date: string; targetMinutes: number}>>([])
+  const [showDailyTargets, setShowDailyTargets] = useState(false)
+  const [repeatPattern, setRepeatPattern] = useState("none")
+  const [customDays, setCustomDays] = useState<string[]>([])
+  const [defaultDailyMinutes, setDefaultDailyMinutes] = useState(60)
+  
+  // Week days
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  
   useEffect(() => {
     if (selectedTemplate) {
       setTitle(selectedTemplate.defaultTitle)
@@ -87,7 +127,54 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
       setRoadmapSteps([{id: '1', title: ''}])
     }
   }, [selectedTemplate])
-
+  
+  // Generate daily targets based on repeat pattern
+  useEffect(() => {
+    if (!useDailyTargets) {
+      setDailyTargets([])
+      return
+    }
+    
+    const targets: Array<{date: string; targetMinutes: number}> = []
+    const today = new Date()
+    
+    // Generate for next 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
+      const dateStr = date.toISOString().split('T')[0]
+      const dayOfWeek = date.getDay()
+      
+      let shouldInclude = false
+      
+      switch (repeatPattern) {
+        case "daily":
+          shouldInclude = true
+          break
+        case "weekdays":
+          shouldInclude = dayOfWeek >= 1 && dayOfWeek <= 5
+          break
+        case "weekends":
+          shouldInclude = dayOfWeek === 0 || dayOfWeek === 6
+          break
+        case "custom":
+          shouldInclude = customDays.includes(dayOfWeek.toString())
+          break
+        default:
+          shouldInclude = i === 0 // Just today
+      }
+      
+      if (shouldInclude) {
+        targets.push({
+          date: dateStr,
+          targetMinutes: defaultDailyMinutes
+        })
+      }
+    }
+    
+    setDailyTargets(targets)
+  }, [useDailyTargets, repeatPattern, customDays, defaultDailyMinutes])
+  
   const handleAddStep = () => {
     const newId = (roadmapSteps.length + 1).toString()
     setRoadmapSteps([...roadmapSteps, {id: newId, title: ''}])
@@ -104,6 +191,20 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     if (roadmapSteps.length > 1) {
       setRoadmapSteps(roadmapSteps.filter(step => step.id !== id))
     }
+  }
+  
+  const toggleCustomDay = (day: string) => {
+    setCustomDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    )
+  }
+  
+  const updateDailyTargetMinutes = (index: number, minutes: number) => {
+    const updated = [...dailyTargets]
+    updated[index] = { ...updated[index], targetMinutes: Math.max(1, minutes) }
+    setDailyTargets(updated)
   }
 
   const handleSubmit = () => {
@@ -122,7 +223,9 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
       category: category || "general",
       priority,
       targetDate: targetDate || new Date().toISOString().split('T')[0],
-      targetMinutes: targetHours * 60,
+      targetMinutes: useDailyTargets ? undefined : targetHours * 60,
+      dailyTargets: useDailyTargets ? dailyTargets : undefined,
+      useDailyTargets,
       roadmap: validRoadmapSteps.length > 0 ? validRoadmapSteps : undefined,
       status: "todo" as const,
       progress: 0,
@@ -143,6 +246,12 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     setRoadmapSteps([{id: '1', title: ''}])
     setShowAdvanced(false)
     setShowRoadmap(false)
+    setUseDailyTargets(false)
+    setDailyTargets([])
+    setRepeatPattern("none")
+    setCustomDays([])
+    setDefaultDailyMinutes(60)
+    setShowDailyTargets(false)
     onClose()
   }
 
@@ -161,7 +270,7 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={handleClose}
       >
         <motion.div
@@ -169,7 +278,7 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="bg-background rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-background rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -283,51 +392,225 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
                   Priority
                 </Label>
                 <LegacySelect value={priority} onValueChange={(value: string) => setPriority(value as 'high' | 'medium' | 'low')}>
-                  <option value="high">🔴 High Priority</option>
-                  <option value="medium">🟡 Medium Priority</option>
-                  <option value="low">🟢 Low Priority</option>
+                  <option value="high">High Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="low">Low Priority</option>
                 </LegacySelect>
               </div>
             </div>
-
-            {/* Target Hours */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="hours" className="text-sm font-medium mb-2 block">
-                  Target Hours
-                </Label>
+            
+            {/* Daily Targets Toggle */}
+            <div className="border rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowDailyTargets(!showDailyTargets)}
+                className="w-full px-4 py-4 flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 hover:opacity-90 transition-opacity"
+              >
                 <div className="flex items-center gap-3">
-                  <Input
-                    id="hours"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={targetHours}
-                    onChange={(e) => setTargetHours(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                  <div className="text-sm text-muted-foreground">hours</div>
+                  <div className="h-10 w-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold">Daily Targets</div>
+                    <div className="text-xs text-muted-foreground">
+                      {useDailyTargets 
+                        ? `Set ${dailyTargets.length} daily targets` 
+                        : "Track progress day by day instead of total hours"}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Estimated time to complete
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="targetDate" className="text-sm font-medium mb-2 block">
-                  Target Date
-                </Label>
-                <Input
-                  id="targetDate"
-                  type="date"
-                  value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  When do you want to finish?
-                </p>
-              </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setUseDailyTargets(!useDailyTargets)
+                    }}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                    style={{ backgroundColor: useDailyTargets ? '#8b5cf6' : '#64748b' }}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                        useDailyTargets ? "translate-x-6" : "translate-x-1"
+                      )}
+                    />
+                  </button>
+                  <ChevronDown className={cn("h-5 w-5 transition-transform", showDailyTargets && "rotate-180")} />
+                </div>
+              </button>
+              
+              <AnimatePresence>
+                {showDailyTargets && useDailyTargets && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 space-y-4 bg-muted/20">
+                      {/* Repeat Pattern */}
+                      <div>
+                        <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Repeat className="h-4 w-4 text-violet-500" />
+                          Repeat Pattern
+                        </Label>
+                        <LegacySelect value={repeatPattern} onValueChange={setRepeatPattern}>
+                          {repeatPatterns.map(pattern => (
+                            <option key={pattern.value} value={pattern.value}>{pattern.label}</option>
+                          ))}
+                        </LegacySelect>
+                      </div>
+                      
+                      {/* Custom Days */}
+                      {repeatPattern === "custom" && (
+                        <div>
+                          <Label className="text-sm font-medium mb-2">Select Days</Label>
+                          <div className="flex gap-2">
+                            {weekDays.map((day, index) => (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => toggleCustomDay(index.toString())}
+                                className={cn(
+                                  "flex-1 py-2 px-1 rounded-lg text-xs font-medium transition-all",
+                                  customDays.includes(index.toString())
+                                    ? "bg-violet-500 text-white"
+                                    : "bg-slate-700/30 text-slate-400 hover:bg-slate-700/50"
+                                )}
+                              >
+                                {day}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Default Time */}
+                      <div>
+                        <Label className="text-sm font-medium mb-2">Default Daily Target</Label>
+                        <div className="flex items-center gap-3">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="1440"
+                            value={Math.floor(defaultDailyMinutes / 60)}
+                            onChange={(e) => {
+                              const hours = parseInt(e.target.value) || 0
+                              const mins = defaultDailyMinutes % 60
+                              setDefaultDailyMinutes(hours * 60 + mins)
+                            }}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">hours</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={defaultDailyMinutes % 60}
+                            onChange={(e) => {
+                              const hours = Math.floor(defaultDailyMinutes / 60)
+                              const mins = parseInt(e.target.value) || 0
+                              setDefaultDailyMinutes(hours * 60 + mins)
+                            }}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">minutes</span>
+                        </div>
+                      </div>
+                      
+                      {/* Preview */}
+                      {dailyTargets.length > 0 && (
+                        <div>
+                          <Label className="text-sm font-medium mb-2">Preview ({dailyTargets.length} days)</Label>
+                          <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-3 bg-background/50">
+                            {dailyTargets.slice(0, 14).map((target, index) => (
+                              <div key={target.date} className="flex items-center gap-3 text-sm">
+                                <span className="text-muted-foreground w-24">
+                                  {new Date(target.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={Math.floor(target.targetMinutes / 60)}
+                                  onChange={(e) => {
+                                    const hours = parseInt(e.target.value) || 0
+                                    const currentMins = target.targetMinutes % 60
+                                    updateDailyTargetMinutes(index, hours * 60 + currentMins)
+                                  }}
+                                  className="w-16 h-8 text-sm"
+                                />
+                                <span className="text-muted-foreground text-xs">h</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={target.targetMinutes % 60}
+                                  onChange={(e) => {
+                                    const hours = Math.floor(target.targetMinutes / 60)
+                                    const mins = parseInt(e.target.value) || 0
+                                    updateDailyTargetMinutes(index, hours * 60 + mins)
+                                  }}
+                                  className="w-16 h-8 text-sm"
+                                />
+                                <span className="text-muted-foreground text-xs">m</span>
+                              </div>
+                            ))}
+                            {dailyTargets.length > 14 && (
+                              <p className="text-xs text-center text-muted-foreground py-2">
+                                ... and {dailyTargets.length - 14} more days
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+
+            {/* Target Hours (only show if not using daily targets) */}
+            {!useDailyTargets && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hours" className="text-sm font-medium mb-2 block">
+                    Target Hours
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="hours"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={targetHours}
+                      onChange={(e) => setTargetHours(Number(e.target.value))}
+                      className="flex-1"
+                    />
+                    <div className="text-sm text-muted-foreground">hours</div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Estimated time to complete
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="targetDate" className="text-sm font-medium mb-2 block">
+                    Target Date
+                  </Label>
+                  <Input
+                    id="targetDate"
+                    type="date"
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When do you want to finish?
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Roadmap Section */}
             <div className="border rounded-xl overflow-hidden">

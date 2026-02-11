@@ -7,19 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useDashboard, GoalStatus } from "@/app/dashboard/providers"
-import { AddGoalModal } from "@/components/dashboard/AddGoalModal"
+import { EnhancedAddGoalModal } from "@/components/dashboard/EnhancedAddGoalModal"
 import { GoalDetailsModal } from "@/components/dashboard/GoalDetailsModal"
+import { AuthPromptModal, useAuthPrompt } from "@/components/dashboard/AuthPromptModal"
 
 export default function GoalsPage() {
-  const { goals, deleteGoal, updateGoalStatus } = useDashboard()
+  const { goals, deleteGoal, updateGoalStatus, addGoal } = useDashboard()
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [targetStatus, setTargetStatus] = useState<GoalStatus>('todo')
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null)
-
-  const openAddModal = (status: GoalStatus = 'todo') => {
-      setTargetStatus(status)
-      setIsModalOpen(true)
-  }
+  const { isOpen: isAuthPromptOpen, action: authAction, nextPath: authNextPath, promptAuth, closePrompt } = useAuthPrompt()
 
   const columns = [
     { id: "todo", label: "To Do", icon: Circle },
@@ -29,10 +25,10 @@ export default function GoalsPage() {
 
   return (
     <div className="space-y-8">
-      <AddGoalModal 
+      <EnhancedAddGoalModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        defaultStatus={targetStatus}
+        onAddGoal={addGoal}
       />
       {activeGoalId && (
         <GoalDetailsModal
@@ -49,9 +45,13 @@ export default function GoalsPage() {
       >
         <div>
            <h1 className="text-3xl font-bold tracking-tight">Goals</h1>
-           <p className="text-muted-foreground">Set and track your personal goals</p>
+           <p className="text-muted-foreground">Set and track your personal goals with roadmaps</p>
         </div>
-        <Button onClick={() => openAddModal('todo')}>
+        <Button onClick={() => {
+          if (promptAuth("add goals", "/dashboard/goals")) {
+            setIsModalOpen(true)
+          }
+        }}>
           <Plus className="mr-2 h-4 w-4" /> Add Goal
         </Button>
       </motion.div>
@@ -100,6 +100,8 @@ export default function GoalsPage() {
                                             goal.category === "Health" && "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
                                             goal.category === "Career" && "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900",
                                             goal.category === "Finance" && "bg-green-50 text-green-700 border-green-100 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                                            goal.category === "skill" && "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900",
+                                            goal.category === "general" && "bg-gray-50 text-gray-700 border-gray-100 dark:bg-gray-950/30 dark:text-gray-400 dark:border-gray-900",
                                         )}>
                                             {goal.category}
                                         </span>
@@ -169,7 +171,11 @@ export default function GoalsPage() {
                     <Button 
                         variant="ghost" 
                         className="w-full text-muted-foreground border border-dashed border-border hover:bg-accent/50 hover:text-foreground"
-                        onClick={() => openAddModal(col.id as GoalStatus)}
+                        onClick={() => {
+                          if (promptAuth("add goals", "/dashboard/goals")) {
+                            setIsModalOpen(true)
+                          }
+                        }}
                     >
                         <Plus className="mr-2 h-4 w-4" /> Add Goal
                     </Button>
@@ -177,6 +183,14 @@ export default function GoalsPage() {
             </div>
         ))}
       </div>
+      
+      {/* Auth Prompt Modal */}
+      <AuthPromptModal 
+        isOpen={isAuthPromptOpen} 
+        onClose={closePrompt}
+        action={authAction}
+        nextPath={authNextPath}
+      />
     </div>
   )
 }

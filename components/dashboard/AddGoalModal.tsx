@@ -48,7 +48,9 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
         category,
         priority,
         targetMinutes,
-        roadmap
+        roadmap,
+        useDailyTargets: false,
+        createdAt: new Date().toISOString()
     })
     
     setTitle("")

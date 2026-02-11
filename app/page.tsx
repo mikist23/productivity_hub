@@ -1,16 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowRight,
   BookOpen,
   Briefcase,
+  CheckCircle2,
   Clock,
   GraduationCap,
   MapPin,
   Newspaper,
+  Play,
+  Sparkles,
   Target,
+  X,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -19,220 +25,408 @@ import { cn } from "@/lib/utils"
 
 const features = [
   {
-    title: "Recipes",
-    description: "Save your own recipes and pull ideas from free sources.",
-    icon: BookOpen,
-  },
-  {
     title: "Goals",
-    description: "Track multi-month goals with progress and priorities.",
+    description: "Track multi-month goals with daily targets and progress tracking.",
     icon: Target,
+    color: "from-violet-500 to-purple-500",
   },
   {
-    title: "Time",
-    description: "Log focus sessions and keep your day on track.",
+    title: "Time Tracking",
+    description: "Log focus sessions with a beautiful timer and auto-completion.",
     icon: Clock,
+    color: "from-blue-500 to-cyan-500",
   },
   {
     title: "Skills",
-    description: "Track what you’re learning and improve consistently.",
+    description: "Track what you're learning and improve consistently.",
     icon: GraduationCap,
+    color: "from-emerald-500 to-teal-500",
   },
   {
     title: "Jobs",
     description: "Manage applications and build a daily apply habit.",
     icon: Briefcase,
+    color: "from-amber-500 to-orange-500",
+  },
+  {
+    title: "Recipes",
+    description: "Save your own recipes and pull ideas from free sources.",
+    icon: BookOpen,
+    color: "from-pink-500 to-rose-500",
   },
   {
     title: "Map",
     description: "Pin places related to goals, tasks, jobs, or life.",
     icon: MapPin,
+    color: "from-indigo-500 to-blue-500",
   },
   {
     title: "Blog",
-    description: "Write posts and keep notes on what you’re building.",
+    description: "Write posts and keep notes on what you're building.",
     icon: Newspaper,
+    color: "from-slate-500 to-zinc-500",
   },
 ] as const
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const [showDemoModal, setShowDemoModal] = useState(false)
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false)
+
+  const handleTryDemo = async () => {
+    setIsLoadingDemo(true)
+    // Demo data will be loaded by the dashboard
+    await new Promise(resolve => setTimeout(resolve, 500))
+    window.location.href = "/dashboard"
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/50">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 font-bold tracking-tight">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Header */}
+      <header className="relative border-b border-slate-800/50 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-600/20">
               M
             </div>
-            <span>MapMonet</span>
-          </div>
-          <div className="flex items-center gap-2">
+            <span className="font-bold text-xl tracking-tight">MapMonet</span>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2"
+          >
             {user ? (
               <Link href="/dashboard">
-                <Button>
+                <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
                   Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
             ) : (
               <>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowDemoModal(true)}
+                  className="text-slate-300 hover:text-white hover:bg-slate-800"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Try Demo
+                </Button>
                 <Link href="/login">
-                  <Button variant="ghost">Log in</Button>
+                  <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800">
+                    Log in
+                  </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button>
+                  <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
                     Get started <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
               </>
             )}
-          </div>
+          </motion.div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-12 md:py-16 space-y-12">
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid gap-10 lg:grid-cols-2 items-center"
-        >
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-accent/30 px-3 py-1 text-xs text-muted-foreground">
-              Free • Local-first • No subscriptions
+      <main className="relative mx-auto max-w-7xl px-6 py-16 md:py-24 space-y-24">
+        {/* Hero Section */}
+        <section className="grid gap-12 lg:grid-cols-2 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="space-y-8"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300">
+              <Sparkles className="h-4 w-4" />
+              <span>Free Forever • Local-first • No subscriptions</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-              Your personal productivity hub — goals, time, skills, jobs, recipes, and more.
+            
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
+              Your personal{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-violet-400">
+                productivity hub
+              </span>
             </h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">
-              MapMonet is built to stay free: your data is stored locally in your browser, with
-              backup/export so you’re never locked in.
+            
+            <p className="text-xl text-slate-400 leading-relaxed max-w-xl">
+              Track goals, time, skills, jobs, and more. Your data stays in your browser — 
+              you're never locked in. Try the demo first, sign up when you're ready.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            
+            <div className="flex flex-col sm:flex-row gap-4">
               {user ? (
                 <Link href="/dashboard" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full">
-                    Open Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+                  <Button size="lg" className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8">
+                    Open Dashboard <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </Link>
               ) : (
                 <>
+                  <Button 
+                    size="lg" 
+                    onClick={() => setShowDemoModal(true)}
+                    className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Try Demo
+                  </Button>
                   <Link href="/signup" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full">
-                      Create account <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                  <Link href="/login" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full">
-                      Log in
+                    <Button size="lg" variant="outline" className="w-full border-slate-700 hover:bg-slate-800 text-lg px-8">
+                      Create account
                     </Button>
                   </Link>
                 </>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">
-              Note: current login is local-first (per-device). Add cloud sync later if you want.
+            
+            <div className="flex items-center gap-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <span>Free forever</span>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
-          <Card className="border-border/60">
-            <CardContent className="p-6 md:p-8 space-y-4">
-              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                What you get
-              </div>
-              <div className="grid gap-3">
-                {[
-                  "Daily tasks + focus logging",
-                  "Goal tracking with progress",
-                  "Skills learning tracker",
-                  "Job application pipeline",
-                  "Recipes (personal + import)",
-                  "Personal map pins",
-                  "Backup/export + restore",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <div className="text-sm">{item}</div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-pink-600/20 rounded-3xl blur-3xl" />
+            <Card className="relative bg-slate-900/80 border-slate-700/50 backdrop-blur-xl overflow-hidden">
+              <CardContent className="p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center">
+                      <Target className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Learn Flutter</div>
+                      <div className="text-sm text-slate-400">Daily Goal</div>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="pt-4 border-t border-border/60 text-xs text-muted-foreground">
-                Everything uses free/open-source libraries. No paid APIs required for the core
-                app.
-              </div>
-            </CardContent>
-          </Card>
-        </motion.section>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-violet-400">3h 30m</div>
+                    <div className="text-sm text-slate-400">of 4h 30m</div>
+                  </div>
+                </div>
+                
+                <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-violet-600 to-pink-600"
+                    initial={{ width: 0 }}
+                    animate={{ width: "78%" }}
+                    transition={{ duration: 1.5, delay: 0.5 }}
+                  />
+                </div>
 
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Pages & features</h2>
-            <p className="text-muted-foreground">
-              Designed to be modular so you can evolve it over time.
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: "Focus Time", value: "3.5h", icon: Clock },
+                    { label: "Streak", value: "12 days", icon: Zap },
+                    { label: "Goals", value: "4 active", icon: Target },
+                  ].map((stat, i) => (
+                    <div key={i} className="text-center p-3 rounded-xl bg-slate-800/50">
+                      <stat.icon className="h-5 w-5 text-slate-400 mx-auto mb-1" />
+                      <div className="font-semibold">{stat.value}</div>
+                      <div className="text-xs text-slate-500">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="space-y-8">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need</h2>
+            <p className="text-slate-400 text-lg">
+              All the tools to track your productivity in one place
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((f) => (
-              <Card key={f.title} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6 space-y-3">
-                  <div
-                    className={cn(
-                      "h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center"
-                    )}
-                  >
-                    <f.icon className="h-5 w-5" />
-                  </div>
-                  <div className="font-semibold">{f.title}</div>
-                  <div className="text-sm text-muted-foreground">{f.description}</div>
-                </CardContent>
-              </Card>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * i }}
+              >
+                <Card className="group h-full bg-slate-900/50 border-slate-700/50 hover:border-slate-600 transition-all cursor-pointer overflow-hidden">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${f.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                  <CardContent className="p-6 space-y-4 relative">
+                    <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center shadow-lg`}>
+                      <f.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1 group-hover:text-white transition-colors">{f.title}</h3>
+                      <p className="text-sm text-slate-400">{f.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-accent/20 p-6 md:p-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold">Ready to start?</h3>
-              <p className="text-sm text-muted-foreground">
-                Create a local account and begin building your routine.
+        {/* Demo CTA Section */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-900/50 via-slate-900 to-slate-950 border border-violet-500/20">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-600/20 via-transparent to-transparent" />
+          <div className="relative p-12 md:p-16 text-center space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to get started?</h2>
+              <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
+                Try the demo with sample data, then create an account to save your progress
               </p>
-            </div>
-            <div className="flex gap-2">
-              {user ? (
-                <Link href="/dashboard">
-                  <Button>
-                    Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg"
+                  onClick={() => setShowDemoModal(true)}
+                  className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Try Demo
+                </Button>
+                <Link href="/signup">
+                  <Button size="lg" variant="outline" className="border-slate-600 hover:bg-slate-800 text-lg px-8">
+                    Create Account
                   </Button>
                 </Link>
-              ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="outline">Log in</Button>
-                  </Link>
-                  <Link href="/signup">
-                    <Button>
-                      Create account <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+              </div>
+            </motion.div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-border/50 py-10">
-        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
+      {/* Footer */}
+      <footer className="border-t border-slate-800/50 py-12">
+        <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold">
+              M
+            </div>
+            <span className="font-semibold">MapMonet</span>
+          </div>
+          <div className="text-sm text-slate-500">
             © {new Date().getFullYear()} MapMonet • Built to stay free
           </div>
-          <div className="text-xs text-muted-foreground">
-            Tip: Use <span className="font-medium">Settings → Download Backup</span> regularly.
+          <div className="text-xs text-slate-600">
+            Your data is stored locally in your browser
           </div>
         </div>
       </footer>
+
+      {/* Demo Modal */}
+      <AnimatePresence>
+        {showDemoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDemoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center">
+                    <Play className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Try the Demo</h3>
+                    <p className="text-sm text-slate-400">Experience MapMonet with sample data</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowDemoModal(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-medium">Sample Goals</div>
+                    <div className="text-sm text-slate-400">Pre-populated with realistic goals like "Learn Flutter" and "Exercise Daily"</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-medium">Time Tracking</div>
+                    <div className="text-sm text-slate-400">Try the timer with daily targets and progress tracking</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-medium">No Signup Required</div>
+                    <div className="text-sm text-slate-400">Jump right in and explore all features</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 space-y-3">
+                <Button 
+                  className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 h-12"
+                  onClick={handleTryDemo}
+                  disabled={isLoadingDemo}
+                >
+                  {isLoadingDemo ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Loading Demo...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Demo
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full border-slate-700 hover:bg-slate-800"
+                  onClick={() => setShowDemoModal(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-

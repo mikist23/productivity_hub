@@ -1,453 +1,579 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Play, Pause, Square, CheckCircle2, Timer, Target, Flame, Clock, TrendingUp } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { 
+  Play, 
+  Pause, 
+  Square, 
+  CheckCircle2, 
+  Clock, 
+  Target, 
+  Flame, 
+  TrendingUp, 
+  Zap,
+  Plus,
+  ChevronDown,
+  Calendar,
+  History,
+  MoreHorizontal
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { LegacySelect } from "@/components/ui/legacy-select"
-import { cn } from "@/lib/utils"
-import { useDashboard } from "@/app/dashboard/providers"
+import { cn, formatMinutes } from "@/lib/utils"
+import { useDashboard, type Goal, type FocusSession } from "@/app/dashboard/providers"
+import { 
+  CircularTimer, 
+  GoalCard, 
+  DailyTargetCalendar, 
+  TimerStats,
+  Celebration 
+} from "@/components/dashboard/timer"
+
+// Container animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 100, damping: 15 }
+  }
+}
 
 export default function TimePage() {
   const { 
     focusSessions, 
     addFocusSession, 
     todayFocusMinutes, 
-    focus, 
     goals,
     focusStreaks,
     goalStreaks,
-    productivityInsights,
-    updateGoalStatus
+    getTodayTarget,
+    getGoalProgressForDate,
+    updateDailyTarget,
+    setGoalDailyTargets
   } = useDashboard()
   
+  // Timer state
   const [isRunning, setIsRunning] = useState(false)
   const [time, setTime] = useState(0) // in seconds
-  const [label, setLabel] = useState("")
-  const [goalId, setGoalId] = useState<string>("")
-  const [showCompletion, setShowCompletion] = useState(false)
-  const [completedGoal, setCompletedGoal] = useState<string | null>(null)
-
+  const [selectedGoalId, setSelectedGoalId] = useState<string>("")
+  const [sessionLabel, setSessionLabel] = useState("")
+  const [showGoalSelector, setShowGoalSelector] = useState(false)
+  
+  // Celebration state
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [celebrationGoal, setCelebrationGoal] = useState<Goal | null>(null)
+  const [hasCelebrated, setHasCelebrated] = useState(false)
+  
+  // Derived state
+  const selectedGoal = useMemo(() => 
+    goals.find(g => g.id === selectedGoalId),
+    [goals, selectedGoalId]
+  )
+  
+  const activeGoals = useMemo(() => 
+    goals.filter(g => g.status !== "completed"),
+    [goals]
+  )
+  
+  // Calculate accumulated minutes for selected goal
+  const accumulatedMinutes = useMemo(() => {
+    if (!selectedGoal) return 0
+    return focusSessions
+      .filter(s => s.goalId === selectedGoal.id)
+      .reduce((acc, s) => acc + s.minutes, 0)
+  }, [selectedGoal, focusSessions])
+  
+  // Calculate progress for selected goal
+  const progress = useMemo(() => {
+    if (!selectedGoal) return 0
+    
+    const sessionMinutes = Math.floor(time / 60)
+    
+    if (selectedGoal.useDailyTargets && selectedGoal.dailyTargets) {
+      const today = new Date().toISOString().split('T')[0]
+      const todayTarget = selectedGoal.dailyTargets.find(dt => dt.date === today)
+      if (todayTarget) {
+        const total = accumulatedMinutes + sessionMinutes
+        return Math.min(100, Math.round((total / todayTarget.targetMinutes) * 100))
+      }
+    } else if (selectedGoal.targetMinutes) {
+      const total = accumulatedMinutes + sessionMinutes
+      return Math.min(100, Math.round((total / selectedGoal.targetMinutes) * 100))
+    }
+    
+    return selectedGoal.progress || 0
+  }, [selectedGoal, accumulatedMinutes, time])
+  
+  // Get target minutes
+  const targetMinutes = useMemo(() => {
+    if (!selectedGoal) return undefined
+    
+    if (selectedGoal.useDailyTargets && selectedGoal.dailyTargets) {
+      const today = new Date().toISOString().split('T')[0]
+      const todayTarget = selectedGoal.dailyTargets.find(dt => dt.date === today)
+      return todayTarget?.targetMinutes
+    }
+    
+    return selectedGoal.targetMinutes
+  }, [selectedGoal])
+  
+  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout
+    
     if (isRunning) {
       interval = setInterval(() => {
-        setTime((prev) => prev + 1)
+        setTime(prev => prev + 1)
       }, 1000)
     }
+    
     return () => clearInterval(interval)
   }, [isRunning])
-
-  useEffect(() => {
-    if (!label && focus) setLabel(focus)
-  }, [focus])
-
-  const selectedGoal = goals.find((g) => g.id === goalId) ?? null
   
-  // Calculate current goal progress in real-time
-  const currentGoalProgress = selectedGoal?.targetMinutes 
-    ? Math.min(100, Math.round((goalTrackedMinutes(selectedGoal.id) / selectedGoal.targetMinutes) * 100))
-    : selectedGoal?.progress || 0
-
+  // Auto-celebrate when goal reached
   useEffect(() => {
-    if (!selectedGoal) return
-    setLabel((prev) => (prev.trim().length > 0 ? prev : selectedGoal.title))
-  }, [selectedGoal])
-
+    if (progress >= 100 && isRunning && !hasCelebrated && selectedGoal) {
+      setCelebrationGoal(selectedGoal)
+      setShowCelebration(true)
+      setHasCelebrated(true)
+      setIsRunning(false)
+    }
+  }, [progress, isRunning, hasCelebrated, selectedGoal])
+  
+  // Reset celebration state when goal changes
+  useEffect(() => {
+    setHasCelebrated(false)
+  }, [selectedGoalId])
+  
+  // Handlers
+  const toggleTimer = () => setIsRunning(!isRunning)
+  
+  const resetTimer = () => {
+    setIsRunning(false)
+    setTime(0)
+  }
+  
+  const logSession = () => {
+    if (time <= 0) return
+    
+    const minutes = Math.max(1, Math.round(time / 60))
+    addFocusSession(minutes, sessionLabel || undefined, selectedGoalId || undefined)
+    
+    // Reset
+    setTime(0)
+    setIsRunning(false)
+    setSessionLabel("")
+  }
+  
+  const quickAddTime = (minutes: number) => {
+    if (selectedGoalId) {
+      addFocusSession(minutes, `Quick add ${minutes}min`, selectedGoalId)
+    } else {
+      addFocusSession(minutes, `Quick add ${minutes}min`)
+    }
+  }
+  
+  const selectGoal = (goalId: string) => {
+    setSelectedGoalId(goalId)
+    setShowGoalSelector(false)
+    setTime(0)
+    setIsRunning(false)
+  }
+  
+  const startGoalTimer = (goal: Goal) => {
+    selectGoal(goal.id)
+    setSessionLabel(goal.title)
+    setIsRunning(true)
+  }
+  
+  const today = new Date().toISOString().split("T")[0]
+  const todaySessions = focusSessions.filter(s => s.date === today)
+  
+  // Group sessions by goal
+  const sessionsByGoal = useMemo(() => {
+    const grouped: Record<string, FocusSession[]> = {}
+    todaySessions.forEach(session => {
+      const goalId = session.goalId || "no-goal"
+      if (!grouped[goalId]) grouped[goalId] = []
+      grouped[goalId].push(session)
+    })
+    return grouped
+  }, [todaySessions])
+  
+  // Format time for display
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
     const secs = seconds % 60
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
-
-  const toggleTimer = () => setIsRunning(!isRunning)
-
-  const logCurrentSession = () => {
-    if (time <= 0) return
-    
-    const minutes = Math.max(1, Math.round(time / 60))
-    const goal = goals.find(g => g.id === goalId)
-    
-    // Add focus session first
-    addFocusSession(minutes, label, goalId || undefined)
-    
-    // Check if goal should be completed
-    if (goal && goal.targetMinutes) {
-      const currentTracked = focusSessions
-        .filter(s => s.goalId === goalId)
-        .reduce((acc, s) => acc + s.minutes, 0) + minutes
-      
-      if (currentTracked >= goal.targetMinutes && goal.status !== 'completed') {
-        setCompletedGoal(goal.title)
-        setShowCompletion(true)
-        setTimeout(() => setShowCompletion(false), 5000)
-        
-        // Auto-complete the goal
-        updateGoalStatus(goal.id, 'completed')
-      }
+  
+  // Handle calendar target updates
+  const handleUpdateTarget = (date: string, targetMinutes: number) => {
+    if (selectedGoal) {
+      updateDailyTarget(selectedGoal.id, date, 0) // This updates the existing target structure
+      // We also need to update the target minutes
+      const existingTargets = selectedGoal.dailyTargets || []
+      const updatedTargets = existingTargets.map(dt => 
+        dt.date === date ? { ...dt, targetMinutes } : dt
+      )
+      setGoalDailyTargets(selectedGoal.id, updatedTargets.map(({ actualMinutes, isComplete, ...rest }) => rest))
     }
-    
-    // Reset form
-    setTime(0)
-    setIsRunning(false)
-    setLabel("")
-    setGoalId("")
   }
-
-  const today = new Date().toISOString().split("T")[0]
-  const todaySessions = focusSessions.filter(s => s.date === today)
-  const totalHours = (todayFocusMinutes / 60).toFixed(1)
-
-  const normalizeTargetDate = (raw: string) => raw.split("T")[0]
-  const todayGoals = goals.filter(
-    (g) => g.status !== "completed" && normalizeTargetDate(g.targetDate) === today
-  )
-
-  const goalTrackedMinutes = (id: string) =>
-    focusSessions.filter((s) => s.goalId === id).reduce((acc, s) => acc + (s.minutes || 0), 0)
-
-  const formatMinutes = (minutes: number) => {
-    const hrs = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hrs <= 0) return `${mins}m`
-    if (mins <= 0) return `${hrs}h`
-    return `${hrs}h ${mins}m`
+  
+  const handleAddTarget = (date: string, targetMinutes: number) => {
+    if (selectedGoal) {
+      const newTarget = { date, targetMinutes }
+      const existingTargets = (selectedGoal.dailyTargets || []).map(({ actualMinutes, isComplete, ...rest }) => rest)
+      setGoalDailyTargets(selectedGoal.id, [...existingTargets, newTarget])
+    }
   }
-
-  const startGoalTimer = (goal: any) => {
-    setGoalId(goal.id)
-    setLabel(goal.title)
-    setTime(0)
-    setIsRunning(true)
-  }
-
+  
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Header with Stats */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid gap-6 md:grid-cols-4"
-      >
-        <div className="md:col-span-2">
-          <h1 className="text-3xl font-bold tracking-tight">Time Tracking</h1>
-          <p className="text-muted-foreground">Track your focus sessions and productivity</p>
-        </div>
-        
-        <Card className="border-none bg-gradient-to-br from-orange-50 to-red-50 border-orange-100">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Flame className="h-5 w-5 text-orange-600" />
-              <span className="text-sm font-medium text-orange-600">Current Streak</span>
-            </div>
-            <div className="text-2xl font-bold text-orange-700">{focusStreaks.currentStreak} days</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium text-blue-600">Completed Goals</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-700">{goalStreaks.completedThisWeek} this week</div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Goal Completion Animation */}
-      {showCompletion && completedGoal && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 50 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: -50 }}
-          className="fixed top-4 right-4 z-50 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-lg shadow-lg max-w-sm"
-        >
+    <motion.div 
+      className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-4 md:p-6 lg:p-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Time Tracking
+            </h1>
+            <p className="text-slate-400 mt-1">Track your focus sessions and daily targets</p>
+          </div>
+          
+          {/* Stats Row */}
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6" />
-            <div>
-              <div className="font-semibold">Goal Completed! 🎉</div>
-              <div className="text-sm opacity-90">{completedGoal}</div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20">
+              <Flame className="h-4 w-4 text-orange-400" />
+              <span className="text-sm font-medium text-orange-300">{focusStreaks.currentStreak} day streak</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20">
+              <TrendingUp className="h-4 w-4 text-blue-400" />
+              <span className="text-sm font-medium text-blue-300">{goalStreaks.completedThisWeek} goals this week</span>
             </div>
           </div>
         </motion.div>
-      )}
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Timer Section */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="border-none shadow-none bg-transparent">
-            <div className="relative aspect-square rounded-full border-8 border-accent flex flex-col items-center justify-center bg-card shadow-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-accent/20 pointer-events-none" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
-                <Timer className="h-4 w-4" /> Focus Timer
-              </span>
-              <div className="text-6xl md:text-7xl font-mono font-bold tracking-tighter tabular-nums">
-                {formatTime(time)}
-              </div>
-              {selectedGoal && (
-                <div className="mt-3 text-sm text-center max-w-xs">
-                  <div className="text-muted-foreground">Working on:</div>
-                  <div className="font-medium text-foreground truncate">{selectedGoal.title}</div>
-                  {selectedGoal.targetMinutes && (
-                    <div className="text-xs text-muted-foreground mt-2">
-                      Progress: {Math.round((goalTrackedMinutes(selectedGoal.id) / 60) * 10) / 10}h / {Math.round((selectedGoal.targetMinutes / 60) * 10) / 10}h
+        
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-12">
+          {/* Left Column - Timer */}
+          <motion.div variants={itemVariants} className="lg:col-span-7 space-y-6">
+            {/* Timer Card */}
+            <Card className="border-none bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 overflow-hidden">
+              <CardContent className="p-6 md:p-8">
+                {/* Goal Selector Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-violet-500/20">
+                      <Target className="h-5 w-5 text-violet-400" />
                     </div>
-                  )}
-                  
-                  {/* Live progress bar */}
-                  {selectedGoal && selectedGoal.targetMinutes && (
-                    <div className="mt-3 w-full max-w-xs">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                        <span>Live Progress</span>
-                        <span>{currentGoalProgress}%</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-primary transition-all duration-500"
-                          style={{ width: `${currentGoalProgress}%` }}
-                          initial={{ width: `${currentGoalProgress}%` }}
-                        />
-                      </div>
-                      {currentGoalProgress >= 100 && (
-                        <div className="text-xs text-green-600 font-medium mt-1">
-                          ✓ Target reached!
-                        </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">
+                        {selectedGoal ? selectedGoal.title : "Select a Goal"}
+                      </h2>
+                      {selectedGoal && (
+                        <p className="text-sm text-slate-400">
+                          {selectedGoal.useDailyTargets ? "Daily target mode" : "Total target mode"}
+                        </p>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-4 mt-8 flex-wrap justify-center">
-                <Button 
-                  size="lg" 
-                  className={cn("rounded-full h-16 w-16 p-0 transition-all shadow-lg", 
-                    isRunning ? "bg-amber-500 hover:bg-amber-600" : "bg-primary")}
-                  onClick={toggleTimer}
-                >
-                  {isRunning ? <Pause className="h-6 w-6 fill-current" /> : <Play className="h-6 w-6 fill-current ml-1" />}
-                </Button>
-                {time > 0 && !isRunning && (
-                  <>
-                    <Button
-                      size="lg"
-                      className="rounded-full h-16 w-16 p-0 shadow-lg bg-green-600 hover:bg-green-700"
-                      onClick={logCurrentSession}
-                      title="Log this session"
-                    >
-                      <CheckCircle2 className="h-5 w-5 fill-current" />
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      variant="secondary"
-                      className="rounded-full h-16 w-16 p-0 shadow-lg"
-                      onClick={() => setTime(0)}
-                      title="Reset timer"
-                    >
-                      <Square className="h-5 w-5 fill-current" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          {/* Goal Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Select Goal
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="goal">Link to a goal (optional)</Label>
-                <LegacySelect value={goalId} onValueChange={setGoalId}>
-                  <option value="">No goal</option>
-                  {goals
-                    .filter((g) => g.status !== "completed")
-                    .slice(0, 50)
-                    .map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.title}
-                      </option>
-                    ))}
-                </LegacySelect>
-                {selectedGoal?.targetMinutes ? (
-                  <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded">
-                    📊 Tracked: {Math.round((goalTrackedMinutes(selectedGoal.id) / 60) * 10) / 10}h /{" "}
-                    {Math.round((selectedGoal.targetMinutes / 60) * 10) / 10}h
-                    {goalTrackedMinutes(selectedGoal.id) >= selectedGoal.targetMinutes && (
-                      <span className="text-green-600 font-medium"> ✓ Ready to complete!</span>
-                    )}
                   </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">
-                    💡 Tip: Set target hours on Goals page to auto-complete.
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="session-label">Session label (optional)</Label>
-                <Input
-                  id="session-label"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="e.g. Deep work: landing page"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This is saved with your focus session when you log it.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Today's Goals */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Today's Goals
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {todayGoals.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No goals due today. Set one on Goals page.
-                </div>
-              ) : (
-                todayGoals.slice(0, 4).map((g) => {
-                  const tracked = goalTrackedMinutes(g.id)
-                  const target = g.targetMinutes ?? 0
-                  const progress = target > 0 ? (tracked / target) * 100 : g.progress
                   
-                  return (
-                    <motion.div 
-                      key={g.id} 
-                      className="rounded-xl border border-border bg-card p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer"
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => startGoalTimer(g)}
+                  <Button
+                    variant="outline"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setShowGoalSelector(!showGoalSelector)}
+                  >
+                    {showGoalSelector ? "Close" : "Change Goal"}
+                    <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform", showGoalSelector && "rotate-180")} />
+                  </Button>
+                </div>
+                
+                {/* Goal Selector Dropdown */}
+                <AnimatePresence>
+                  {showGoalSelector && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden mb-6"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-semibold truncate">{g.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {target > 0
-                              ? `Time: ${Math.round((tracked / 60) * 10) / 10}h / ${Math.round((target / 60) * 10) / 10}h`
-                              : "Roadmap / manual progress"}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startGoalTimer(g)
-                          }}
-                        >
-                          {goalId === g.id && isRunning ? "Running" : "Start"}
-                        </Button>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">{Math.min(100, Math.round(progress))}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                          <div 
-                            className={cn(
-                              "h-full transition-all duration-500",
-                              progress >= 100 ? "bg-green-500" : "bg-primary"
-                            )} 
-                            style={{ width: `${Math.min(100, progress)}%` }} 
-                          />
+                      <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-3">
+                        <div className="text-sm text-slate-400 mb-2">Select a goal to track:</div>
+                        <div className="grid gap-2 max-h-64 overflow-y-auto">
+                          {activeGoals.map((goal) => (
+                            <button
+                              key={goal.id}
+                              onClick={() => selectGoal(goal.id)}
+                              className={cn(
+                                "flex items-center gap-3 p-3 rounded-lg text-left transition-all",
+                                selectedGoalId === goal.id
+                                  ? "bg-violet-500/20 border border-violet-500/50"
+                                  : "bg-slate-700/30 border border-transparent hover:bg-slate-700/50"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                goal.priority === "high" ? "bg-red-500" :
+                                goal.priority === "medium" ? "bg-yellow-500" : "bg-green-500"
+                              )} />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white truncate">{goal.title}</div>
+                                <div className="text-xs text-slate-400">{goal.category}</div>
+                              </div>
+                              {selectedGoalId === goal.id && (
+                                <CheckCircle2 className="h-4 w-4 text-violet-400" />
+                              )}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
-                  )
-                })
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Today's Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Today's Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-accent/50 text-center">
-                  <div className="text-2xl font-bold">{totalHours}h</div>
-                  <div className="text-xs text-muted-foreground uppercase mt-1">Total Focus</div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Circular Timer */}
+                <div className="flex justify-center py-6">
+                  <CircularTimer
+                    seconds={time}
+                    isRunning={isRunning}
+                    progress={progress}
+                    accumulatedMinutes={accumulatedMinutes}
+                    targetMinutes={targetMinutes}
+                    size={300}
+                    strokeWidth={10}
+                  />
                 </div>
-                <div className="p-3 rounded-xl bg-accent/50 text-center">
-                  <div className="text-2xl font-bold">{todaySessions.length}</div>
-                  <div className="text-xs text-muted-foreground uppercase mt-1">Sessions</div>
+                
+                {/* Timer Controls */}
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  {/* Reset */}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-white"
+                      onClick={resetTimer}
+                      disabled={time === 0}
+                    >
+                      <Square className="h-5 w-5 fill-current" />
+                    </Button>
+                  </motion.div>
+                  
+                  {/* Play/Pause */}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      size="icon"
+                      className={cn(
+                        "h-20 w-20 rounded-full shadow-2xl shadow-violet-500/30",
+                        isRunning 
+                          ? "bg-amber-500 hover:bg-amber-600" 
+                          : "bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+                      )}
+                      onClick={toggleTimer}
+                    >
+                      {isRunning ? (
+                        <Pause className="h-8 w-8 fill-current" />
+                      ) : (
+                        <Play className="h-8 w-8 fill-current ml-1" />
+                      )}
+                    </Button>
+                  </motion.div>
+                  
+                  {/* Log Session */}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+                      onClick={logSession}
+                      disabled={time === 0}
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                    </Button>
+                  </motion.div>
                 </div>
-              </div>
-              
-              {productivityInsights.peakProductivityHour !== null && (
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
-                  <div className="text-sm font-medium text-blue-700">
-                    Peak Productivity: {productivityInsights.peakProductivityHour}:00
+                
+                {/* Quick Add Buttons */}
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <span className="text-xs text-slate-500 mr-2">Quick add:</span>
+                  {[15, 30, 60].map((mins) => (
+                    <Button
+                      key={mins}
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-600 text-slate-400 hover:bg-violet-500/20 hover:text-violet-300 hover:border-violet-500/50"
+                      onClick={() => quickAddTime(mins)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Stats Card */}
+            <TimerStats
+              sessionMinutes={Math.floor(time / 60)}
+              accumulatedMinutes={accumulatedMinutes}
+              targetMinutes={targetMinutes}
+              progress={progress}
+              sessionsToday={todaySessions.length}
+              streakDays={focusStreaks.currentStreak}
+            />
+          </motion.div>
+          
+          {/* Right Column - Goals & Calendar */}
+          <motion.div variants={itemVariants} className="lg:col-span-5 space-y-6">
+            {/* Today's Goals */}
+            <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                  <Target className="h-5 w-5 text-violet-400" />
+                  Today's Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {activeGoals.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <Target className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>No active goals</p>
+                    <p className="text-sm mt-1">Create goals to start tracking time</p>
                   </div>
-                  <div className="text-xs text-blue-600">
-                    Schedule important tasks around this time
+                ) : (
+                  <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-1">
+                    {activeGoals.slice(0, 6).map((goal, index) => {
+                      const goalAccumulated = focusSessions
+                        .filter(s => s.goalId === goal.id)
+                        .reduce((acc, s) => acc + s.minutes, 0)
+                      
+                      return (
+                        <motion.div
+                          key={goal.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <GoalCard
+                            goal={goal}
+                            isSelected={selectedGoalId === goal.id}
+                            isRunning={selectedGoalId === goal.id && isRunning}
+                            accumulatedMinutes={goalAccumulated}
+                            onSelect={() => selectGoal(goal.id)}
+                            onStartTimer={() => startGoalTimer(goal)}
+                          />
+                        </motion.div>
+                      )
+                    })}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Sessions */}
-          <Card className="flex-1">
-            <CardHeader>
-              <CardTitle>Recent Sessions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0 p-0 max-h-80 overflow-y-auto">
-              {focusSessions.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  No focus sessions yet. Log one from the timer.
-                </div>
-              ) : (
-                focusSessions.slice(0, 8).map((session) => (
-                  <div key={session.id} className="flex items-center p-4 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-0">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 text-primary">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {session.label?.trim() ? session.label : "Focus session"}
-                      </p>
-                      <div className="text-xs text-muted-foreground">
-                        {session.timestamp
-                          ? new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : session.date}
-                      </div>
-                    </div>
-                    <div className="font-mono font-medium text-sm">
-                      {formatMinutes(session.minutes)}
-                    </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Daily Target Calendar */}
+            {selectedGoal && (
+              <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+                <CardContent className="p-4">
+                  <DailyTargetCalendar
+                    dailyTargets={selectedGoal.dailyTargets || []}
+                    onUpdateTarget={handleUpdateTarget}
+                    onAddTarget={handleAddTarget}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Recent Sessions */}
+            <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                  <History className="h-5 w-5 text-violet-400" />
+                  Recent Sessions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {todaySessions.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <Clock className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No sessions today</p>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                ) : (
+                  <div className="space-y-0 max-h-64 overflow-y-auto">
+                    {todaySessions.slice(0, 8).map((session, index) => {
+                      const sessionGoal = session.goalId ? goals.find(g => g.id === session.goalId) : null
+                      
+                      return (
+                        <motion.div
+                          key={session.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="flex items-center gap-3 p-3 border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-violet-500/20 flex items-center justify-center">
+                            <CheckCircle2 className="h-4 w-4 text-violet-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">
+                              {session.label || "Focus session"}
+                            </p>
+                            {sessionGoal && (
+                              <p className="text-xs text-violet-400">{sessionGoal.title}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono font-medium text-white">
+                              {formatMinutes(session.minutes)}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
-    </div>
+      
+      {/* Celebration Modal */}
+      <Celebration
+        isOpen={showCelebration}
+        goalTitle={celebrationGoal?.title || "Goal"}
+        message="You've reached your target for today! Great job staying focused."
+        onClose={() => {
+          setShowCelebration(false)
+          resetTimer()
+        }}
+        onContinue={() => {
+          setIsRunning(true)
+        }}
+      />
+    </motion.div>
   )
 }
