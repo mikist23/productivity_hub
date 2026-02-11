@@ -4,12 +4,14 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowRight, Lock, Mail } from "lucide-react"
+import { ArrowRight, Lock, Mail, Chrome, Sparkles, Target, Clock, Zap, CheckCircle2 } from "lucide-react"
+import { signIn } from "next-auth/react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 
 function sanitizeNextPath(nextPath: string | undefined) {
   if (!nextPath) return null
@@ -17,6 +19,13 @@ function sanitizeNextPath(nextPath: string | undefined) {
   if (nextPath.startsWith("//")) return null
   return nextPath
 }
+
+const features = [
+  { icon: Target, text: "Track goals & milestones" },
+  { icon: Clock, text: "Log focus time" },
+  { icon: Zap, text: "Build productive habits" },
+  { icon: CheckCircle2, text: "100% private & local" },
+]
 
 export function LoginClient({
   nextPath,
@@ -26,7 +35,7 @@ export function LoginClient({
   initialEmail?: string
 }) {
   const router = useRouter()
-  const { user, login } = useAuth()
+  const { user, login, isLoading } = useAuth()
 
   const safeNext = useMemo(() => sanitizeNextPath(nextPath) ?? "/dashboard", [nextPath])
 
@@ -67,89 +76,204 @@ export function LoginClient({
     }
   }
 
+  const handleGoogleSignIn = () => {
+    signIn("google", { callbackUrl: safeNext })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="mb-6 text-center">
-          <div className="inline-flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-              M
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(139,92,246,0.1),transparent_50%)]" />
+        
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+        
+        <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/25">
+                <span className="text-2xl font-bold">M</span>
+              </div>
+              <span className="text-3xl font-bold text-white">MapMonet</span>
             </div>
-            <span>MapMonet</span>
+            
+            {/* Tagline */}
+            <h1 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+              Your Personal
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400"> Productivity Hub</span>
+            </h1>
+            
+            <p className="text-lg text-slate-400 mb-10 max-w-lg">
+              Track goals, manage time, and build better habits. All your data stays private on your device.
+            </p>
+            
+            {/* Features */}
+            <div className="space-y-4">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={feature.text}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
+                  className="flex items-center gap-3 text-slate-300"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center">
+                    <feature.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span>{feature.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Bottom Badge */}
+        <div className="absolute bottom-8 left-16 xl:left-24 flex items-center gap-2 text-sm text-slate-500">
+          <Sparkles className="h-4 w-4" />
+          <span>Free forever • No subscriptions • Private by design</span>
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground">
+              <span className="text-xl font-bold">M</span>
+            </div>
+            <span className="text-2xl font-bold">MapMonet</span>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">Log in to your local account.</p>
-        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="pl-9"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
+          <Card className="border-border/50 shadow-2xl shadow-black/20 bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">Welcome back</h2>
+                <p className="text-muted-foreground">
+                  Sign in to continue your journey
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your password"
-                    className="pl-9"
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-              </div>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive"
+                >
+                  {error}
+                </motion.div>
+              )}
 
-              <Button type="submit" className="w-full" disabled={isSubmitting || didSucceed}>
-                {didSucceed ? "Redirecting..." : isSubmitting ? "Logging in..." : "Log in"}{" "}
-                <ArrowRight className="h-4 w-4 ml-2" />
+              {/* Google Sign In */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogleSignIn}
+                className="w-full h-12 mb-4 relative bg-background hover:bg-accent"
+              >
+                <svg className="absolute left-4 h-5 w-5" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                Continue with Google
               </Button>
-            </form>
 
-            <div className="text-xs text-muted-foreground">
-              New here?{" "}
-              <Link href={signupHref} className="text-foreground underline underline-offset-4">
-                Create an account
-              </Link>
-              .
-            </div>
-          </CardContent>
-        </Card>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-4 text-muted-foreground">or continue with email</span>
+                </div>
+              </div>
 
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          No subscriptions. Data is stored locally in your browser.
-        </div>
-      </motion.div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="pl-11 h-12 bg-background"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="pl-11 h-12 bg-background"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-medium" 
+                  disabled={isSubmitting || didSucceed}
+                >
+                  {didSucceed ? "Redirecting..." : isSubmitting ? "Signing in..." : "Sign in"}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </form>
+
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link href={signupHref} className="text-primary font-medium hover:underline">
+                  Create an account
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            By signing in, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </motion.div>
+      </div>
     </div>
   )
 }

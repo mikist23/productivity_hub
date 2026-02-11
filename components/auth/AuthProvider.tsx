@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useMemo, useState } from "react"
+import { createContext, useContext, useMemo, useState, useEffect } from "react"
+import { useSession, signOut as nextAuthSignOut } from "next-auth/react"
 import { useLocalStorageJsonState, useLocalStorageStringState } from "@/lib/storage"
 import { LEGACY_DASHBOARD_KEYS, MM_AUTH_SESSION_KEY, MM_AUTH_USERS_KEY, mmUserKey } from "@/lib/mm-keys"
 
@@ -9,6 +10,8 @@ export type AuthUser = {
   email: string
   name: string
   createdAt: string
+  image?: string | null
+  provider?: "local" | "google" | "microsoft"
 }
 
 type StoredUser = AuthUser & {
@@ -20,6 +23,7 @@ type AuthResult = { ok: true } | { ok: false; error: string }
 
 type AuthContextValue = {
   user: AuthUser | null
+  isLoading: boolean
   signup: (input: { email: string; password: string; name: string }) => Promise<AuthResult>
   login: (input: { email: string; password: string }) => Promise<AuthResult>
   logout: () => void
@@ -98,19 +102,40 @@ function migrateLegacyDashboardData(userId: string) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
   const [users, setUsers] = useLocalStorageJsonState<StoredUser[]>(MM_AUTH_USERS_KEY, [])
   const [sessionUserId, setSessionUserId, clearSessionUserId] = useLocalStorageStringState(
     MM_AUTH_SESSION_KEY,
     ""
   )
 
-  const user: AuthUser | null = useMemo(() => {
+  // Check if user is authenticated via NextAuth (Google, etc.)
+  const nextAuthUser = useMemo(() => {
+    if (status === "authenticated" && session?.user) {
+      return {
+        id: session.user.id || makeId(),
+        email: session.user.email || "",
+        name: session.user.name || "",
+        image: session.user.image,
+        createdAt: new Date().toISOString(),
+        provider: "google" as const,
+      }
+    }
+    return null
+  }, [session, status])
+
+  // Check if user is authenticated via local auth
+  const localUser: AuthUser | null = useMemo(() => {
     const found = users.find((u) => u.id === sessionUserId)
     if (!found) return null
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, salt, ...publicUser } = found
-    return publicUser
+    return { ...publicUser, provider: "local" as const }
   }, [sessionUserId, users])
+
+  // Combine both auth methods - NextAuth takes precedence
+  const user = nextAuthUser || localUser
+  const isLoading = status === "loading"
 
   const [isBusy, setIsBusy] = useState(false)
 
@@ -169,11 +194,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
+    // Sign out from both local and NextAuth
     clearSessionUserId()
+    if (status === "authenticated") {
+      nextAuthSignOut({ callbackUrl: "/login" })
+    }
   }
 
   const value: AuthContextValue = {
     user,
+    isLoading,
     signup,
     login,
     logout,
