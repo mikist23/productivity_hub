@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
 import { useLocalStorageJsonState, useLocalStorageStringState } from "@/lib/storage"
 import { calculateFocusStreaks, getStreakHistory, calculateGoalStreaks, getProductivityInsights } from "@/lib/streaks"
+import { defaultCloudDashboardPayload, type CloudDashboardPayload } from "@/lib/dashboard-defaults"
 
 export type SkillStatus = "mastered" | "learning" | "inprogress"
 export type JobStatus = "applied" | "interview" | "offer" | "rejected"
@@ -318,6 +319,23 @@ function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
   return { ...goal, progress, status }
 }
 
+function asArray<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback
+}
+
+function asMapView(value: unknown): MapViewState {
+  if (!value || typeof value !== "object") return defaultMapView
+  const candidate = value as Partial<MapViewState>
+  if (
+    typeof candidate.lat !== "number" ||
+    typeof candidate.lng !== "number" ||
+    typeof candidate.zoom !== "number"
+  ) {
+    return defaultMapView
+  }
+  return { lat: candidate.lat, lng: candidate.lng, zoom: candidate.zoom }
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id ?? "anon"
@@ -375,6 +393,117 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   )
   const [recipes, setRecipes] = useLocalStorageJsonState<Recipe[]>(storageKey("dashboard_recipes"), emptyRecipes)
   const [posts, setPosts] = useLocalStorageJsonState<Post[]>(storageKey("dashboard_posts"), emptyPosts)
+  const cloudSyncRef = React.useRef({ loaded: false, skipNextSave: false })
+
+  const cloudPayload = React.useMemo<CloudDashboardPayload>(
+    () => ({
+      userProfile: userProfile as unknown as Record<string, unknown>,
+      skills: skills as unknown[],
+      jobs: jobs as unknown[],
+      focus,
+      tasks: tasks as unknown[],
+      focusSessions: focusSessions as unknown[],
+      goals: goals as unknown[],
+      recentActivities: recentActivities as unknown[],
+      mapPins: mapPins as unknown[],
+      mapView: mapView ?? defaultMapView,
+      recipes: recipes as unknown[],
+      posts: posts as unknown[],
+    }),
+    [focus, focusSessions, goals, jobs, mapPins, mapView, posts, recipes, recentActivities, skills, tasks, userProfile]
+  )
+
+  React.useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+    cloudSyncRef.current.loaded = false
+
+    const hydrateFromCloud = async () => {
+      try {
+        const res = await fetch("/api/dashboard", {
+          headers: {
+            "x-mapmonet-user-id": user.id,
+          },
+        })
+        if (!res.ok) return
+
+        const data = (await res.json()) as Partial<CloudDashboardPayload>
+        if (cancelled) return
+
+        cloudSyncRef.current.skipNextSave = true
+        setUserProfile(
+          ((data.userProfile as unknown as UserProfile) ?? defaultCloudDashboardPayload.userProfile) as UserProfile
+        )
+        setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
+        setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
+        setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
+        setTasks(asArray<Task>(data.tasks, emptyTasks))
+        setFocusSessions(asArray<FocusSession>(data.focusSessions, emptyFocusSessions))
+        setGoals(asArray<Goal>(data.goals, emptyGoals))
+        setRecentActivities(asArray<ActivityLog>(data.recentActivities, emptyActivities))
+        setMapPins(asArray<MapPin>(data.mapPins, emptyMapPins))
+        setMapViewState(asMapView(data.mapView))
+        setRecipes(asArray<Recipe>(data.recipes, emptyRecipes))
+        setPosts(asArray<Post>(data.posts, emptyPosts))
+      } catch {
+        // Keep local data when cloud read fails.
+      } finally {
+        if (!cancelled) {
+          cloudSyncRef.current.loaded = true
+        }
+      }
+    }
+
+    hydrateFromCloud()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    setFocusSessions,
+    setFocusState,
+    setGoals,
+    setJobs,
+    setMapPins,
+    setMapViewState,
+    setPosts,
+    setRecentActivities,
+    setRecipes,
+    setSkills,
+    setTasks,
+    setUserProfile,
+    user?.id,
+  ])
+
+  React.useEffect(() => {
+    if (!user?.id || !cloudSyncRef.current.loaded) return
+    if (cloudSyncRef.current.skipNextSave) {
+      cloudSyncRef.current.skipNextSave = false
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(async () => {
+      try {
+        await fetch("/api/dashboard", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-mapmonet-user-id": user.id,
+          },
+          body: JSON.stringify(cloudPayload),
+          signal: controller.signal,
+        })
+      } catch {
+        // Keep local updates even if cloud write fails.
+      }
+    }, 1200)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [cloudPayload, user?.id])
 
   // --- Helper to Log Activity ---
   const logActivity = (text: string, type: ActivityLog["type"]) => {

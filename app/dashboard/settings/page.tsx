@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
-import { Download, Upload, Trash2 } from "lucide-react"
+import { Download, Upload, Trash2, CloudUpload } from "lucide-react"
 import { useDashboard } from "@/app/dashboard/providers"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,10 +52,12 @@ export default function SettingsPage() {
 
   const [importError, setImportError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [cloudStatus, setCloudStatus] = useState<string | null>(null)
 
   const stats = useMemo(() => {
     const totalSkills = skills.reduce((acc, c) => acc + c.items.length, 0)
-    const completedTasks = tasks.filter(t => t.completed).length
+    const completedTasks = tasks.filter((t) => t.completed).length
     return {
       tasks: tasks.length,
       completedTasks,
@@ -80,25 +82,77 @@ export default function SettingsPage() {
     tasks,
   ])
 
-  const downloadBackup = () => {
-    const payload: BackupV1 = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      app: "MapMonet",
-      data: {
-        profile: userProfile,
-        skills,
-        jobs,
-        focus,
-        tasks,
-        focusSessions,
-        goals,
-        activities: recentActivities,
-        mapPins,
-        mapView,
-        recipes,
-        posts,
+  const buildLocalBackup = (): BackupV1 => ({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    app: "MapMonet",
+    data: {
+      profile: userProfile,
+      skills,
+      jobs,
+      focus,
+      tasks,
+      focusSessions,
+      goals,
+      activities: recentActivities,
+      mapPins,
+      mapView,
+      recipes,
+      posts,
+    },
+  })
+
+  const pushBackupToCloud = async (backup: BackupV1) => {
+    if (!user?.id) return
+    const res = await fetch("/api/dashboard/migrate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-mapmonet-user-id": user.id,
       },
+      body: JSON.stringify(backup),
+    })
+
+    if (!res.ok) {
+      throw new Error("Cloud migration failed.")
+    }
+  }
+
+  const downloadBackup = async () => {
+    setCloudStatus(null)
+    let payload = buildLocalBackup()
+
+    if (user?.id) {
+      try {
+        const res = await fetch("/api/dashboard", {
+          headers: {
+            "x-mapmonet-user-id": user.id,
+          },
+        })
+
+        if (res.ok) {
+          const cloud = await res.json()
+          payload = {
+            ...payload,
+            data: {
+              profile: cloud.userProfile ?? payload.data.profile,
+              skills: cloud.skills ?? payload.data.skills,
+              jobs: cloud.jobs ?? payload.data.jobs,
+              focus: cloud.focus ?? payload.data.focus,
+              tasks: cloud.tasks ?? payload.data.tasks,
+              focusSessions: cloud.focusSessions ?? payload.data.focusSessions,
+              goals: cloud.goals ?? payload.data.goals,
+              activities: cloud.recentActivities ?? payload.data.activities,
+              mapPins: cloud.mapPins ?? payload.data.mapPins,
+              mapView: cloud.mapView ?? payload.data.mapView,
+              recipes: cloud.recipes ?? payload.data.recipes,
+              posts: cloud.posts ?? payload.data.posts,
+            },
+          }
+        }
+      } catch {
+        // Fallback to local snapshot.
+      }
     }
 
     const safeDate = new Date().toISOString().replace(/[:.]/g, "-")
@@ -115,7 +169,7 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const applyBackup = (backup: BackupV1) => {
+  const applyBackup = async (backup: BackupV1) => {
     localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.profile), JSON.stringify(backup.data.profile ?? {}))
     localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.skills), JSON.stringify(backup.data.skills ?? []))
     localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.jobs), JSON.stringify(backup.data.jobs ?? []))
@@ -132,6 +186,7 @@ export default function SettingsPage() {
     localStorage.setItem(key("dashboard_recipes"), JSON.stringify(backup.data.recipes ?? []))
     localStorage.setItem(key("dashboard_posts"), JSON.stringify(backup.data.posts ?? []))
 
+    await pushBackupToCloud(backup)
     window.location.reload()
   }
 
@@ -140,6 +195,7 @@ export default function SettingsPage() {
   const handleFileSelected = async (file: File | null) => {
     if (!file) return
     setImportError(null)
+    setCloudStatus(null)
     setImporting(true)
 
     try {
@@ -150,25 +206,62 @@ export default function SettingsPage() {
         throw new Error("Invalid backup file (expected MapMonet v1 backup).")
       }
 
-      applyBackup(parsed)
+      await applyBackup(parsed)
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "Failed to import backup.")
       setImporting(false)
     }
   }
 
+  const migrateLocalDataToCloud = async () => {
+    if (!user?.id) {
+      setCloudStatus("Cloud migration requires a signed-in account.")
+      return
+    }
+
+    setCloudStatus(null)
+    setMigrating(true)
+
+    try {
+      await pushBackupToCloud(buildLocalBackup())
+      setCloudStatus("Local data migrated to cloud successfully.")
+    } catch (e) {
+      setCloudStatus(e instanceof Error ? e.message : "Cloud migration failed.")
+    } finally {
+      setMigrating(false)
+    }
+  }
+
   const clearAllData = () => {
+    setCloudStatus(null)
     const ok = window.confirm(
-      "This will permanently delete ALL your local MapMonet data for this account on this device. Continue?"
+      "This will permanently delete all MapMonet data (cloud and local cache) for this account. Continue?"
     )
     if (!ok) return
 
-    for (const k of Object.values(LEGACY_DASHBOARD_KEYS)) {
-      localStorage.removeItem(key(k))
+    const run = async () => {
+      if (user?.id) {
+        try {
+          await fetch("/api/dashboard", {
+            method: "DELETE",
+            headers: {
+              "x-mapmonet-user-id": user.id,
+            },
+          })
+        } catch {
+          // Continue clearing local cache.
+        }
+      }
+
+      for (const k of Object.values(LEGACY_DASHBOARD_KEYS)) {
+        localStorage.removeItem(key(k))
+      }
+      localStorage.removeItem(key("dashboard_recipes"))
+      localStorage.removeItem(key("dashboard_posts"))
+      window.location.reload()
     }
-    localStorage.removeItem(key("dashboard_recipes"))
-    localStorage.removeItem(key("dashboard_posts"))
-    window.location.reload()
+
+    void run()
   }
 
   return (
@@ -208,22 +301,24 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            MapMonet stores everything in your browser storage. Use a backup file to
-            migrate between devices (no paid services required).
+            Export and import backup files, or migrate your local data to MongoDB cloud storage.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={downloadBackup}>
+            <Button onClick={() => void downloadBackup()}>
               <Download className="h-4 w-4 mr-2" /> Download Backup
             </Button>
             <Button variant="outline" onClick={handlePickFile} disabled={importing}>
               <Upload className="h-4 w-4 mr-2" /> Import Backup
+            </Button>
+            <Button variant="outline" onClick={() => void migrateLocalDataToCloud()} disabled={migrating}>
+              <CloudUpload className="h-4 w-4 mr-2" /> {migrating ? "Migrating..." : "Migrate Local To Cloud"}
             </Button>
             <input
               ref={fileInputRef}
               type="file"
               accept="application/json"
               className="hidden"
-              onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
+              onChange={(e) => void handleFileSelected(e.target.files?.[0] ?? null)}
             />
           </div>
           {importError && (
@@ -231,9 +326,14 @@ export default function SettingsPage() {
               {importError}
             </div>
           )}
+          {cloudStatus && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+              {cloudStatus}
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
-            Your profile name: <span className="font-medium">{userProfile.name}</span> • Top
-            priority: <span className="font-medium">{focus || "—"}</span> • Activity items:{" "}
+            Your profile name: <span className="font-medium">{userProfile.name}</span> | Top
+            priority: <span className="font-medium">{focus || "-"}</span> | Activity items:{" "}
             <span className="font-medium">{stats.activities}</span>
           </div>
         </CardContent>
@@ -245,7 +345,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Reset clears all local data for this app on this device.
+            Reset clears cloud data and local cache for this account.
           </p>
           <Button
             variant="outline"
