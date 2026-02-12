@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## MongoDB Setup (Data API)
+
+This project now supports cloud persistence for dashboard data through MongoDB Atlas Data API.
+
+1. In MongoDB Atlas, enable **Data API** for your cluster.
+2. Create an API key with read/write access.
+3. Add the following environment variables in `.env.local`:
+
+```env
+MONGODB_DATA_API_URL=https://data.mongodb-api.com/app/<your-app-id>/endpoint/data/v1
+MONGODB_DATA_API_KEY=<your-data-api-key>
+MONGODB_DATA_SOURCE=Cluster0
+MONGODB_DATABASE=productivity_hub
+MONGODB_COLLECTION=dashboard_state
+```
+
+4. Restart the dev server.
+5. Sign in and use the dashboard normally. Data will be loaded from and saved to MongoDB automatically.
+
+If these variables are missing, the app keeps working locally and cloud sync endpoints return `503`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

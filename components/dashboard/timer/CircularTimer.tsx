@@ -81,6 +81,7 @@ export function CircularTimer({
    
   const time = formatTime(seconds)
   const isComplete = progress >= 100
+  const hasProgress = progress > 0
   
   const formatAccumulated = (minutes: number) => {
     const hrs = Math.floor(minutes / 60)
@@ -119,9 +120,19 @@ export function CircularTimer({
       >
         <defs>
           <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8b5cf6" />
-            <stop offset="50%" stopColor="#a78bfa" />
-            <stop offset="100%" stopColor="#c084fc" />
+            {hasProgress ? (
+              <>
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="50%" stopColor="#34d399" />
+                <stop offset="100%" stopColor="#6ee7b7" />
+              </>
+            ) : (
+              <>
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="50%" stopColor="#a78bfa" />
+                <stop offset="100%" stopColor="#c084fc" />
+              </>
+            )}
           </linearGradient>
           
           <filter id="glow">
@@ -230,7 +241,7 @@ export function CircularTimer({
           >
             <span className={cn(
               "text-xs font-semibold",
-              isComplete ? "text-emerald-400" : "text-violet-400"
+              hasProgress ? "text-emerald-400" : "text-violet-400"
             )}>
               {isComplete ? "✓ 100% complete" : `${Math.round(progress)}% complete`}
             </span>

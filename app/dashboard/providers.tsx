@@ -3,7 +3,6 @@
 import React, { createContext, useContext } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
-import { useLocalStorageJsonState, useLocalStorageStringState } from "@/lib/storage"
 import { calculateFocusStreaks, getStreakHistory, calculateGoalStreaks, getProductivityInsights } from "@/lib/streaks"
 
 export type SkillStatus = "mastered" | "learning" | "inprogress"
@@ -220,7 +219,7 @@ export interface DashboardContextType {
   productivityInsights: ReturnType<typeof getProductivityInsights>
 }
 
-const defaultProfile: UserProfile = {
+export const defaultProfile: UserProfile = {
   name: "",
   role: "",
   bio: ""
@@ -236,7 +235,7 @@ const emptyMapPins: MapPin[] = []
 const emptyRecipes: Recipe[] = []
 const emptyPosts: Post[] = []
 
-const defaultMapView: MapViewState = {
+export const defaultMapView: MapViewState = {
   // Roughly center of the contiguous US
   lat: 39.8283,
   lng: -98.5795,
@@ -318,15 +317,68 @@ function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
   return { ...goal, progress, status }
 }
 
+interface DashboardCloudData {
+  userProfile: UserProfile
+  skills: SkillCategory[]
+  jobs: JobApplication[]
+  focus: string
+  tasks: Task[]
+  focusSessions: FocusSession[]
+  goals: Goal[]
+  recentActivities: ActivityLog[]
+  mapPins: MapPin[]
+  mapView: MapViewState
+  recipes: Recipe[]
+  posts: Post[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function readArray<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback
+}
+
+
+function safeLocalRead<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (raw == null) return fallback
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
+function safeLocalReadString(key: string, fallback = "") {
+  if (typeof window === "undefined") return fallback
+  try {
+    return window.localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id ?? "anon"
-  const storageKey = (key: string) => mmUserKey(userId, key)
+  const storageKey = React.useCallback((key: string) => mmUserKey(userId, key), [userId])
 
-  const [userProfile, setUserProfile] = useLocalStorageJsonState<UserProfile>(
-    storageKey(LEGACY_DASHBOARD_KEYS.profile),
-    defaultProfile
-  )
+  const [userProfile, setUserProfile] = React.useState<UserProfile>(defaultProfile)
+  const [skills, setSkills] = React.useState<SkillCategory[]>(emptySkillCategories)
+  const [jobs, setJobs] = React.useState<JobApplication[]>(emptyJobs)
+  const [focus, setFocusState] = React.useState("")
+  const [tasks, setTasks] = React.useState<Task[]>(emptyTasks)
+  const [focusSessions, setFocusSessions] = React.useState<FocusSession[]>(emptyFocusSessions)
+  const [goals, setGoals] = React.useState<Goal[]>(emptyGoals)
+  const [recentActivities, setRecentActivities] = React.useState<ActivityLog[]>(emptyActivities)
+  const [mapPins, setMapPins] = React.useState<MapPin[]>(emptyMapPins)
+  const [mapView, setMapViewState] = React.useState<MapViewState>(defaultMapView)
+  const [recipes, setRecipes] = React.useState<Recipe[]>(emptyRecipes)
+  const [posts, setPosts] = React.useState<Post[]>(emptyPosts)
 
   React.useEffect(() => {
     if (!user) return
@@ -335,46 +387,191 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       if (prevName.length > 0 && prevName.toLowerCase() !== "alex") return prev
       return { ...prev, name: user.name }
     })
-  }, [setUserProfile, user])
-  const [skills, setSkills] = useLocalStorageJsonState<SkillCategory[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.skills),
-    emptySkillCategories
-  )
-  const [jobs, setJobs] = useLocalStorageJsonState<JobApplication[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.jobs),
-    emptyJobs
-  )
-  const [focus, setFocusState] = useLocalStorageStringState(
-    storageKey(LEGACY_DASHBOARD_KEYS.focus),
-    ""
-  )
+  }, [user])
+  const [, setCloudSyncError] = React.useState<string | null>(null)
+  const isHydratingRef = React.useRef(false)
+  const hasHydratedRef = React.useRef(false)
 
-  const [tasks, setTasks] = useLocalStorageJsonState<Task[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.tasks),
-    emptyTasks
-  )
-  const [focusSessions, setFocusSessions] = useLocalStorageJsonState<FocusSession[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.focusSessions),
-    emptyFocusSessions
-  )
-  const [goals, setGoals] = useLocalStorageJsonState<Goal[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.goals),
-    emptyGoals
-  )
-  const [recentActivities, setRecentActivities] = useLocalStorageJsonState<ActivityLog[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.activities),
-    emptyActivities
-  )
-  const [mapPins, setMapPins] = useLocalStorageJsonState<MapPin[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.mapPins),
-    emptyMapPins
-  )
-  const [mapView, setMapViewState] = useLocalStorageJsonState<MapViewState>(
-    storageKey(LEGACY_DASHBOARD_KEYS.mapView),
-    defaultMapView
-  )
-  const [recipes, setRecipes] = useLocalStorageJsonState<Recipe[]>(storageKey("dashboard_recipes"), emptyRecipes)
-  const [posts, setPosts] = useLocalStorageJsonState<Post[]>(storageKey("dashboard_posts"), emptyPosts)
+  React.useEffect(() => {
+    let ignore = false
+
+    const hydrateFromMongo = async () => {
+      if (!userId || userId === "anon") {
+        hasHydratedRef.current = true
+        return
+      }
+
+      isHydratingRef.current = true
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "GET",
+          headers: {
+            "x-mm-user-id": userId,
+          },
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          if (response.status !== 503) {
+            const payload = (await response.json().catch(() => ({}))) as { error?: string }
+            if (!ignore) setCloudSyncError(payload.error ?? "Failed to load cloud data")
+          }
+          return
+        }
+
+        const payload = (await response.json()) as {
+          document?: { data?: Record<string, unknown> | null } | null
+        }
+        const doc = payload.document
+
+        let data: Record<string, unknown> | null = null
+        if (doc?.data && isRecord(doc.data)) {
+          data = doc.data
+        } else if (typeof window !== "undefined") {
+          const migratedData: DashboardCloudData = {
+            userProfile: safeLocalRead<UserProfile>(storageKey(LEGACY_DASHBOARD_KEYS.profile), defaultProfile),
+            skills: safeLocalRead<SkillCategory[]>(storageKey(LEGACY_DASHBOARD_KEYS.skills), emptySkillCategories),
+            jobs: safeLocalRead<JobApplication[]>(storageKey(LEGACY_DASHBOARD_KEYS.jobs), emptyJobs),
+            focus: safeLocalReadString(storageKey(LEGACY_DASHBOARD_KEYS.focus), ""),
+            tasks: safeLocalRead<Task[]>(storageKey(LEGACY_DASHBOARD_KEYS.tasks), emptyTasks),
+            focusSessions: safeLocalRead<FocusSession[]>(storageKey(LEGACY_DASHBOARD_KEYS.focusSessions), emptyFocusSessions),
+            goals: safeLocalRead<Goal[]>(storageKey(LEGACY_DASHBOARD_KEYS.goals), emptyGoals),
+            recentActivities: safeLocalRead<ActivityLog[]>(storageKey(LEGACY_DASHBOARD_KEYS.activities), emptyActivities),
+            mapPins: safeLocalRead<MapPin[]>(storageKey(LEGACY_DASHBOARD_KEYS.mapPins), emptyMapPins),
+            mapView: safeLocalRead<MapViewState>(storageKey(LEGACY_DASHBOARD_KEYS.mapView), defaultMapView),
+            recipes: safeLocalRead<Recipe[]>(storageKey("dashboard_recipes"), emptyRecipes),
+            posts: safeLocalRead<Post[]>(storageKey("dashboard_posts"), emptyPosts),
+          }
+
+          const hasLocalContent =
+            migratedData.skills.length > 0 ||
+            migratedData.jobs.length > 0 ||
+            migratedData.tasks.length > 0 ||
+            migratedData.focusSessions.length > 0 ||
+            migratedData.goals.length > 0 ||
+            migratedData.recentActivities.length > 0 ||
+            migratedData.mapPins.length > 0 ||
+            migratedData.recipes.length > 0 ||
+            migratedData.posts.length > 0 ||
+            migratedData.focus.length > 0 ||
+            migratedData.userProfile.name.length > 0
+
+          if (hasLocalContent) {
+            data = migratedData as unknown as Record<string, unknown>
+          }
+        }
+
+        if (!data || ignore) return
+
+        if (isRecord(data.userProfile)) setUserProfile(data.userProfile as unknown as UserProfile)
+        setSkills(readArray<SkillCategory>(data.skills, emptySkillCategories))
+        setJobs(readArray<JobApplication>(data.jobs, emptyJobs))
+        setFocusState(typeof data.focus === "string" ? data.focus : "")
+        setTasks(readArray<Task>(data.tasks, emptyTasks))
+        setFocusSessions(readArray<FocusSession>(data.focusSessions, emptyFocusSessions))
+        setGoals(readArray<Goal>(data.goals, emptyGoals))
+        setRecentActivities(readArray<ActivityLog>(data.recentActivities, emptyActivities))
+        setMapPins(readArray<MapPin>(data.mapPins, emptyMapPins))
+        setMapViewState(isRecord(data.mapView) ? (data.mapView as unknown as MapViewState) : defaultMapView)
+        setRecipes(readArray<Recipe>(data.recipes, emptyRecipes))
+        setPosts(readArray<Post>(data.posts, emptyPosts))
+        if (!ignore) setCloudSyncError(null)
+      } catch (error) {
+        if (!ignore) {
+          setCloudSyncError(error instanceof Error ? error.message : "Failed to load cloud data")
+        }
+      } finally {
+        isHydratingRef.current = false
+        hasHydratedRef.current = true
+      }
+    }
+
+    hydrateFromMongo()
+
+    return () => {
+      ignore = true
+    }
+  }, [
+    userId,
+    setFocusSessions,
+    setFocusState,
+    setGoals,
+    setJobs,
+    setMapPins,
+    setMapViewState,
+    setPosts,
+    setRecentActivities,
+    setRecipes,
+    setSkills,
+    setTasks,
+    setUserProfile,
+    storageKey,
+  ])
+
+  React.useEffect(() => {
+    if (!hasHydratedRef.current || isHydratingRef.current) return
+    if (!userId || userId === "anon") return
+
+    const payload: DashboardCloudData = {
+      userProfile,
+      skills,
+      jobs,
+      focus,
+      tasks,
+      focusSessions,
+      goals,
+      recentActivities,
+      mapPins,
+      mapView,
+      recipes,
+      posts,
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-mm-user-id": userId,
+          },
+          body: JSON.stringify({ data: payload }),
+          signal: controller.signal,
+        })
+
+        if (!response.ok && response.status !== 503) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string }
+          setCloudSyncError(data.error ?? "Cloud sync failed")
+          return
+        }
+
+        setCloudSyncError(null)
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return
+        setCloudSyncError(error instanceof Error ? error.message : "Cloud sync failed")
+      }
+    }, 800)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [
+    focus,
+    focusSessions,
+    goals,
+    jobs,
+    mapPins,
+    mapView,
+    posts,
+    recentActivities,
+    recipes,
+    skills,
+    tasks,
+    userId,
+    userProfile,
+  ])
 
   // --- Helper to Log Activity ---
   const logActivity = (text: string, type: ActivityLog["type"]) => {

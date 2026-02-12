@@ -3,11 +3,10 @@
 import { useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { Download, Upload, Trash2 } from "lucide-react"
-import { useDashboard } from "@/app/dashboard/providers"
+import { defaultMapView, defaultProfile, useDashboard } from "@/app/dashboard/providers"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
 
 type BackupV1 = {
   version: 1
@@ -33,7 +32,6 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const { user } = useAuth()
   const userId = user?.id ?? "anon"
-  const key = (k: string) => mmUserKey(userId, k)
 
   const {
     userProfile,
@@ -115,22 +113,35 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const applyBackup = (backup: BackupV1) => {
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.profile), JSON.stringify(backup.data.profile ?? {}))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.skills), JSON.stringify(backup.data.skills ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.jobs), JSON.stringify(backup.data.jobs ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.focus), String(backup.data.focus ?? ""))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.tasks), JSON.stringify(backup.data.tasks ?? []))
-    localStorage.setItem(
-      key(LEGACY_DASHBOARD_KEYS.focusSessions),
-      JSON.stringify(backup.data.focusSessions ?? [])
-    )
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.goals), JSON.stringify(backup.data.goals ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.activities), JSON.stringify(backup.data.activities ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.mapPins), JSON.stringify(backup.data.mapPins ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.mapView), JSON.stringify(backup.data.mapView ?? {}))
-    localStorage.setItem(key("dashboard_recipes"), JSON.stringify(backup.data.recipes ?? []))
-    localStorage.setItem(key("dashboard_posts"), JSON.stringify(backup.data.posts ?? []))
+  const applyBackup = async (backup: BackupV1) => {
+    const response = await fetch("/api/dashboard", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-mm-user-id": userId,
+      },
+      body: JSON.stringify({
+        data: {
+          userProfile: backup.data.profile ?? {},
+          skills: backup.data.skills ?? [],
+          jobs: backup.data.jobs ?? [],
+          focus: String(backup.data.focus ?? ""),
+          tasks: backup.data.tasks ?? [],
+          focusSessions: backup.data.focusSessions ?? [],
+          goals: backup.data.goals ?? [],
+          recentActivities: backup.data.activities ?? [],
+          mapPins: backup.data.mapPins ?? [],
+          mapView: backup.data.mapView ?? {},
+          recipes: backup.data.recipes ?? [],
+          posts: backup.data.posts ?? [],
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      throw new Error(payload.error ?? "Failed to save backup to MongoDB")
+    }
 
     window.location.reload()
   }
@@ -150,25 +161,42 @@ export default function SettingsPage() {
         throw new Error("Invalid backup file (expected MapMonet v1 backup).")
       }
 
-      applyBackup(parsed)
+      await applyBackup(parsed)
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "Failed to import backup.")
       setImporting(false)
     }
   }
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     const ok = window.confirm(
-      "This will permanently delete ALL your local MapMonet data for this account on this device. Continue?"
+      "This will permanently delete ALL your cloud MapMonet data for this account. Continue?"
     )
     if (!ok) return
 
-    for (const k of Object.values(LEGACY_DASHBOARD_KEYS)) {
-      localStorage.removeItem(key(k))
+    try {
+      await applyBackup({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        app: "MapMonet",
+        data: {
+          profile: defaultProfile,
+          skills: [],
+          jobs: [],
+          focus: "",
+          tasks: [],
+          focusSessions: [],
+          goals: [],
+          activities: [],
+          mapPins: [],
+          mapView: defaultMapView,
+          recipes: [],
+          posts: [],
+        },
+      })
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Failed to clear cloud data.")
     }
-    localStorage.removeItem(key("dashboard_recipes"))
-    localStorage.removeItem(key("dashboard_posts"))
-    window.location.reload()
   }
 
   return (
@@ -208,8 +236,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            MapMonet stores everything in your browser storage. Use a backup file to
-            migrate between devices (no paid services required).
+            MapMonet stores dashboard data in MongoDB cloud sync. Use backup files for migration and recovery.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={downloadBackup}>
@@ -245,7 +272,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Reset clears all local data for this app on this device.
+            Reset clears all cloud data for this account.
           </p>
           <Button
             variant="outline"
