@@ -36,7 +36,7 @@ export function GoalCard({
     const todayTarget = goal.dailyTargets.find(dt => dt.date === today)
     
     if (todayTarget) {
-      const actual = todayTarget.actualMinutes + accumulatedMinutes
+      const actual = accumulatedMinutes
       progress = Math.min(100, Math.round((actual / todayTarget.targetMinutes) * 100))
       targetDisplay = formatDuration(todayTarget.targetMinutes)
       progressDisplay = `${formatDuration(actual)} / ${targetDisplay}`
