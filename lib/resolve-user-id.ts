@@ -10,7 +10,9 @@ export async function resolveRequestUserId(req: NextRequest) {
   }
 
   // Fallback for local auth mode (client-managed auth users).
-  const headerUserId = req.headers.get("x-mapmonet-user-id")?.trim()
+  const headerUserId =
+    req.headers.get("x-mapmonet-user-id")?.trim() ||
+    req.headers.get("x-mm-user-id")?.trim()
   if (headerUserId) {
     return headerUserId
   }

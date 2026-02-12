@@ -20,6 +20,22 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## MongoDB Setup
+
+This project supports cloud persistence for dashboard data in MongoDB.
+
+1. Add the following environment variables in `.env.local`:
+
+```env
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority
+MONGODB_DB=productivity_hub
+```
+
+2. Restart the dev server.
+3. Sign in and use the dashboard normally. Data is loaded from and saved to MongoDB through `/api/dashboard`.
+
+The app still keeps local state as cache/fallback for a smoother migration.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
