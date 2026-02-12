@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
-import { useLocalStorageJsonState, useLocalStorageStringState } from "@/lib/storage"
 import { calculateFocusStreaks, getStreakHistory, calculateGoalStreaks, getProductivityInsights } from "@/lib/streaks"
 import { defaultCloudDashboardPayload, type CloudDashboardPayload } from "@/lib/dashboard-defaults"
 
@@ -338,13 +336,7 @@ function asMapView(value: unknown): MapViewState {
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
-  const userId = user?.id ?? "anon"
-  const storageKey = (key: string) => mmUserKey(userId, key)
-
-  const [userProfile, setUserProfile] = useLocalStorageJsonState<UserProfile>(
-    storageKey(LEGACY_DASHBOARD_KEYS.profile),
-    defaultProfile
-  )
+  const [userProfile, setUserProfile] = React.useState<UserProfile>(defaultProfile)
 
   React.useEffect(() => {
     if (!user) return
@@ -354,45 +346,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       return { ...prev, name: user.name }
     })
   }, [setUserProfile, user])
-  const [skills, setSkills] = useLocalStorageJsonState<SkillCategory[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.skills),
-    emptySkillCategories
-  )
-  const [jobs, setJobs] = useLocalStorageJsonState<JobApplication[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.jobs),
-    emptyJobs
-  )
-  const [focus, setFocusState] = useLocalStorageStringState(
-    storageKey(LEGACY_DASHBOARD_KEYS.focus),
-    ""
-  )
-
-  const [tasks, setTasks] = useLocalStorageJsonState<Task[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.tasks),
-    emptyTasks
-  )
-  const [focusSessions, setFocusSessions] = useLocalStorageJsonState<FocusSession[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.focusSessions),
-    emptyFocusSessions
-  )
-  const [goals, setGoals] = useLocalStorageJsonState<Goal[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.goals),
-    emptyGoals
-  )
-  const [recentActivities, setRecentActivities] = useLocalStorageJsonState<ActivityLog[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.activities),
-    emptyActivities
-  )
-  const [mapPins, setMapPins] = useLocalStorageJsonState<MapPin[]>(
-    storageKey(LEGACY_DASHBOARD_KEYS.mapPins),
-    emptyMapPins
-  )
-  const [mapView, setMapViewState] = useLocalStorageJsonState<MapViewState>(
-    storageKey(LEGACY_DASHBOARD_KEYS.mapView),
-    defaultMapView
-  )
-  const [recipes, setRecipes] = useLocalStorageJsonState<Recipe[]>(storageKey("dashboard_recipes"), emptyRecipes)
-  const [posts, setPosts] = useLocalStorageJsonState<Post[]>(storageKey("dashboard_posts"), emptyPosts)
+  const [skills, setSkills] = React.useState<SkillCategory[]>(emptySkillCategories)
+  const [jobs, setJobs] = React.useState<JobApplication[]>(emptyJobs)
+  const [focus, setFocusState] = React.useState("")
+  const [tasks, setTasks] = React.useState<Task[]>(emptyTasks)
+  const [focusSessions, setFocusSessions] = React.useState<FocusSession[]>(emptyFocusSessions)
+  const [goals, setGoals] = React.useState<Goal[]>(emptyGoals)
+  const [recentActivities, setRecentActivities] = React.useState<ActivityLog[]>(emptyActivities)
+  const [mapPins, setMapPins] = React.useState<MapPin[]>(emptyMapPins)
+  const [mapView, setMapViewState] = React.useState<MapViewState>(defaultMapView)
+  const [recipes, setRecipes] = React.useState<Recipe[]>(emptyRecipes)
+  const [posts, setPosts] = React.useState<Post[]>(emptyPosts)
   const cloudSyncRef = React.useRef({ loaded: false, skipNextSave: false })
 
   const cloudPayload = React.useMemo<CloudDashboardPayload>(

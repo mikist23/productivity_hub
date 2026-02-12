@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
-    "build:analyze": "ANALYZE=true npm run build"
+    "build:analyze": "ANALYZE=true npm run build",
+    "test": "vitest run",
+    "test:db": "vitest run tests/mongodb-connection.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -34,9 +36,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.2.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }

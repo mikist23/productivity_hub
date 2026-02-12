@@ -7,7 +7,6 @@ import { useDashboard } from "@/app/dashboard/providers"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LEGACY_DASHBOARD_KEYS, mmUserKey } from "@/lib/mm-keys"
 
 type BackupV1 = {
   version: 1
@@ -32,8 +31,6 @@ type BackupV1 = {
 export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const { user } = useAuth()
-  const userId = user?.id ?? "anon"
-  const key = (k: string) => mmUserKey(userId, k)
 
   const {
     userProfile,
@@ -170,22 +167,6 @@ export default function SettingsPage() {
   }
 
   const applyBackup = async (backup: BackupV1) => {
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.profile), JSON.stringify(backup.data.profile ?? {}))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.skills), JSON.stringify(backup.data.skills ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.jobs), JSON.stringify(backup.data.jobs ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.focus), String(backup.data.focus ?? ""))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.tasks), JSON.stringify(backup.data.tasks ?? []))
-    localStorage.setItem(
-      key(LEGACY_DASHBOARD_KEYS.focusSessions),
-      JSON.stringify(backup.data.focusSessions ?? [])
-    )
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.goals), JSON.stringify(backup.data.goals ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.activities), JSON.stringify(backup.data.activities ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.mapPins), JSON.stringify(backup.data.mapPins ?? []))
-    localStorage.setItem(key(LEGACY_DASHBOARD_KEYS.mapView), JSON.stringify(backup.data.mapView ?? {}))
-    localStorage.setItem(key("dashboard_recipes"), JSON.stringify(backup.data.recipes ?? []))
-    localStorage.setItem(key("dashboard_posts"), JSON.stringify(backup.data.posts ?? []))
-
     await pushBackupToCloud(backup)
     window.location.reload()
   }
@@ -235,7 +216,7 @@ export default function SettingsPage() {
   const clearAllData = () => {
     setCloudStatus(null)
     const ok = window.confirm(
-      "This will permanently delete all MapMonet data (cloud and local cache) for this account. Continue?"
+      "This will permanently delete all MapMonet cloud data for this account. Continue?"
     )
     if (!ok) return
 
@@ -253,11 +234,6 @@ export default function SettingsPage() {
         }
       }
 
-      for (const k of Object.values(LEGACY_DASHBOARD_KEYS)) {
-        localStorage.removeItem(key(k))
-      }
-      localStorage.removeItem(key("dashboard_recipes"))
-      localStorage.removeItem(key("dashboard_posts"))
       window.location.reload()
     }
 

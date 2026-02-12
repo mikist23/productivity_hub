@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn, formatMinutes } from "@/lib/utils"
 import { useDashboard, type Goal } from "@/app/dashboard/providers"
-import { useAuth } from "@/components/auth/AuthProvider"
-import { mmUserKey } from "@/lib/mm-keys"
 import { 
   CircularTimer, 
   GoalCard, 
@@ -39,7 +37,6 @@ const itemVariants = {
 }
 
 export default function TimePage() {
-  const { user } = useAuth()
   const { 
     focusSessions, 
     addFocusSession, 
@@ -55,14 +52,6 @@ export default function TimePage() {
     sessionLabel?: string
   }
 
-  type PersistedTimerState = {
-    selectedGoalId: string
-    runningGoalKey: string | null
-    startedAtMs: number | null
-    drafts: Record<string, TimerDraft>
-  }
-
-  const storageKey = useMemo(() => mmUserKey(user?.id ?? "anon", "dashboard_time_timer_state"), [user?.id])
   const [selectedGoalId, setSelectedGoalId] = useState<string>("")
   const [runningGoalKey, setRunningGoalKey] = useState<string | null>(null)
   const [startedAtMs, setStartedAtMs] = useState<number | null>(null)
@@ -79,50 +68,6 @@ export default function TimePage() {
   const goalKey = useCallback((goalId?: string) => (goalId && goalId.length > 0 ? goalId : "no-goal"), [])
   const today = new Date().toISOString().split("T")[0]
   const todaySessions = useMemo(() => focusSessions.filter(s => s.date === today), [focusSessions, today])
-
-  const persistTimerState = useCallback((payload: PersistedTimerState) => {
-    if (typeof window === "undefined") return
-    window.localStorage.setItem(storageKey, JSON.stringify(payload))
-  }, [storageKey])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const raw = window.localStorage.getItem(storageKey)
-    if (!raw) return
-    try {
-      const parsed = JSON.parse(raw) as PersistedTimerState
-      setSelectedGoalId(parsed.selectedGoalId ?? "")
-      setRunningGoalKey(parsed.runningGoalKey ?? null)
-      setStartedAtMs(parsed.startedAtMs ?? null)
-      setDrafts(parsed.drafts ?? {})
-      setSessionLabel(parsed.drafts?.[goalKey(parsed.selectedGoalId)]?.sessionLabel ?? "")
-    } catch {
-      // ignore invalid timer payloads
-    }
-  }, [goalKey, storageKey])
-
-  useEffect(() => {
-    persistTimerState({
-      selectedGoalId,
-      runningGoalKey,
-      startedAtMs,
-      drafts,
-    })
-  }, [drafts, persistTimerState, runningGoalKey, selectedGoalId, startedAtMs])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const saveOnPageHide = () => {
-      persistTimerState({
-        selectedGoalId,
-        runningGoalKey,
-        startedAtMs,
-        drafts,
-      })
-    }
-    window.addEventListener("pagehide", saveOnPageHide)
-    return () => window.removeEventListener("pagehide", saveOnPageHide)
-  }, [drafts, persistTimerState, runningGoalKey, selectedGoalId, startedAtMs])
 
   useEffect(() => {
     if (!runningGoalKey) return

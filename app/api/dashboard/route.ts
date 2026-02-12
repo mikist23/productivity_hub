@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { connectToDatabase } from "@/lib/mongodb"
+import { connectToDatabase, isMongoConfigured } from "@/lib/mongodb"
 import { UserDashboard } from "@/lib/models/UserDashboard"
 import { defaultCloudDashboardPayload } from "@/lib/dashboard-defaults"
 import { resolveRequestUserId } from "@/lib/resolve-user-id"
@@ -27,6 +27,10 @@ const dashboardSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  if (!isMongoConfigured()) {
+    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+  }
+
   const userId = await resolveRequestUserId(req)
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -48,6 +52,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!isMongoConfigured()) {
+    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+  }
+
   const userId = await resolveRequestUserId(req)
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -71,6 +79,10 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isMongoConfigured()) {
+    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+  }
+
   const userId = await resolveRequestUserId(req)
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
