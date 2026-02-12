@@ -37,7 +37,9 @@ export function GoalCard({
     
     if (todayTarget) {
       const actual = accumulatedMinutes
-      progress = Math.min(100, Math.round((actual / todayTarget.targetMinutes) * 100))
+      progress = todayTarget.targetMinutes > 0
+        ? Math.min(100, Math.round((actual / todayTarget.targetMinutes) * 100))
+        : 0
       targetDisplay = formatDuration(todayTarget.targetMinutes)
       progressDisplay = `${formatDuration(actual)} / ${targetDisplay}`
     }
@@ -52,6 +54,7 @@ export function GoalCard({
   }
   
   const isComplete = progress >= 100
+  const hasProgress = progress > 0
   
   // Category colors
   const categoryColors: Record<string, string> = {
@@ -140,7 +143,11 @@ export function GoalCard({
           <motion.div
             className={cn(
               "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
-              isComplete ? "bg-emerald-500" : "bg-gradient-to-r from-violet-500 to-purple-500"
+              isComplete
+                ? "bg-emerald-500"
+                : hasProgress
+                  ? "bg-gradient-to-r from-emerald-500 to-lime-400"
+                  : "bg-gradient-to-r from-violet-500 to-purple-500"
             )}
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, progress)}%` }}

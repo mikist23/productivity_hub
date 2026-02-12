@@ -2,28 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  Play, 
-  Pause, 
-  Square, 
-  CheckCircle2, 
-  Clock, 
-  Target, 
-  Flame, 
-  TrendingUp, 
-  Zap,
-  Plus,
-  ChevronDown,
-  Calendar,
-  History,
-  MoreHorizontal
-} from "lucide-react"
+import { Play, Pause, Square, CheckCircle2, Clock, Target, Flame, TrendingUp, Plus, ChevronDown, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { cn, formatMinutes } from "@/lib/utils"
-import { useDashboard, type Goal, type FocusSession } from "@/app/dashboard/providers"
+import { useDashboard, type Goal } from "@/app/dashboard/providers"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { mmUserKey } from "@/lib/mm-keys"
 import { 
@@ -60,12 +43,9 @@ export default function TimePage() {
   const { 
     focusSessions, 
     addFocusSession, 
-    todayFocusMinutes, 
     goals,
     focusStreaks,
     goalStreaks,
-    getTodayTarget,
-    getGoalProgressForDate,
     updateDailyTarget,
     setGoalDailyTargets
   } = useDashboard()
@@ -97,6 +77,13 @@ export default function TimePage() {
   const [hasCelebrated, setHasCelebrated] = useState(false)
   
   const goalKey = useCallback((goalId?: string) => (goalId && goalId.length > 0 ? goalId : "no-goal"), [])
+  const today = new Date().toISOString().split("T")[0]
+  const todaySessions = useMemo(() => focusSessions.filter(s => s.date === today), [focusSessions, today])
+
+  const persistTimerState = useCallback((payload: PersistedTimerState) => {
+    if (typeof window === "undefined") return
+    window.localStorage.setItem(storageKey, JSON.stringify(payload))
+  }, [storageKey])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -115,15 +102,27 @@ export default function TimePage() {
   }, [goalKey, storageKey])
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const payload: PersistedTimerState = {
+    persistTimerState({
       selectedGoalId,
       runningGoalKey,
       startedAtMs,
       drafts,
+    })
+  }, [drafts, persistTimerState, runningGoalKey, selectedGoalId, startedAtMs])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const saveOnPageHide = () => {
+      persistTimerState({
+        selectedGoalId,
+        runningGoalKey,
+        startedAtMs,
+        drafts,
+      })
     }
-    window.localStorage.setItem(storageKey, JSON.stringify(payload))
-  }, [drafts, runningGoalKey, selectedGoalId, startedAtMs, storageKey])
+    window.addEventListener("pagehide", saveOnPageHide)
+    return () => window.removeEventListener("pagehide", saveOnPageHide)
+  }, [drafts, persistTimerState, runningGoalKey, selectedGoalId, startedAtMs])
 
   useEffect(() => {
     if (!runningGoalKey) return
@@ -147,25 +146,37 @@ export default function TimePage() {
   const selectedGoalKey = goalKey(selectedGoalId)
   const isRunning = runningGoalKey === selectedGoalKey
 
-  const getDraftSeconds = useCallback((goalId?: string) => {
-    const draft = drafts[goalKey(goalId)]
-    return draft?.seconds ?? 0
-  }, [drafts, goalKey])
-
-  const currentElapsedSeconds = useMemo(() => {
-    const base = getDraftSeconds(selectedGoalId)
-    if (!isRunning || !startedAtMs) return base
+  const getElapsedSecondsForGoal = useCallback((goalId?: string) => {
+    const key = goalKey(goalId)
+    const base = drafts[key]?.seconds ?? 0
+    if (runningGoalKey !== key || !startedAtMs) return base
     const live = Math.max(0, Math.floor((tick - startedAtMs) / 1000))
     return base + live
-  }, [getDraftSeconds, isRunning, selectedGoalId, startedAtMs, tick])
+  }, [drafts, goalKey, runningGoalKey, startedAtMs, tick])
 
-  // Calculate accumulated minutes for selected goal
-  const accumulatedMinutes = useMemo(() => {
+  const currentElapsedSeconds = useMemo(() => {
+    return getElapsedSecondsForGoal(selectedGoalId)
+  }, [getElapsedSecondsForGoal, selectedGoalId])
+
+  // Calculate accumulated minutes for selected goal (all-time and today)
+  const accumulatedTotalMinutes = useMemo(() => {
     if (!selectedGoal) return 0
     return focusSessions
       .filter(s => s.goalId === selectedGoal.id)
       .reduce((acc, s) => acc + s.minutes, 0)
   }, [selectedGoal, focusSessions])
+
+  const accumulatedTodayMinutes = useMemo(() => {
+    if (!selectedGoal) return 0
+    return todaySessions
+      .filter(s => s.goalId === selectedGoal.id)
+      .reduce((acc, s) => acc + s.minutes, 0)
+  }, [selectedGoal, todaySessions])
+
+  const accumulatedMinutesForTarget = useMemo(() => {
+    if (!selectedGoal) return 0
+    return selectedGoal.useDailyTargets ? accumulatedTodayMinutes : accumulatedTotalMinutes
+  }, [accumulatedTodayMinutes, accumulatedTotalMinutes, selectedGoal])
   
   // Calculate progress for selected goal
   const progress = useMemo(() => {
@@ -174,32 +185,30 @@ export default function TimePage() {
     const sessionMinutes = Math.floor(currentElapsedSeconds / 60)
     
     if (selectedGoal.useDailyTargets && selectedGoal.dailyTargets) {
-      const today = new Date().toISOString().split('T')[0]
       const todayTarget = selectedGoal.dailyTargets.find(dt => dt.date === today)
       if (todayTarget) {
-        const total = accumulatedMinutes + sessionMinutes
+        const total = accumulatedMinutesForTarget + sessionMinutes
         return Math.min(100, Math.round((total / todayTarget.targetMinutes) * 100))
       }
     } else if (selectedGoal.targetMinutes) {
-      const total = accumulatedMinutes + sessionMinutes
+      const total = accumulatedMinutesForTarget + sessionMinutes
       return Math.min(100, Math.round((total / selectedGoal.targetMinutes) * 100))
     }
     
     return selectedGoal.progress || 0
-  }, [selectedGoal, accumulatedMinutes, currentElapsedSeconds])
+  }, [accumulatedMinutesForTarget, currentElapsedSeconds, selectedGoal, today])
   
   // Get target minutes
   const targetMinutes = useMemo(() => {
     if (!selectedGoal) return undefined
     
     if (selectedGoal.useDailyTargets && selectedGoal.dailyTargets) {
-      const today = new Date().toISOString().split('T')[0]
       const todayTarget = selectedGoal.dailyTargets.find(dt => dt.date === today)
       return todayTarget?.targetMinutes
     }
     
     return selectedGoal.targetMinutes
-  }, [selectedGoal])
+  }, [selectedGoal, today])
   
   // Auto-celebrate when goal reached
   useEffect(() => {
@@ -311,7 +320,7 @@ export default function TimePage() {
   const startGoalTimer = (goal: Goal) => {
     setSelectedGoalId(goal.id)
     setShowGoalSelector(false)
-    setSessionLabel(prev => prev || goal.title)
+    setSessionLabel(drafts[goalKey(goal.id)]?.sessionLabel ?? goal.title)
     startGoal(goal.id)
   }
 
@@ -331,28 +340,6 @@ export default function TimePage() {
       setSessionLabel(drafts[goalKey("")]?.sessionLabel ?? "")
     }
   }, [drafts, goalKey, goals, selectedGoalId])
-  
-  const today = new Date().toISOString().split("T")[0]
-  const todaySessions = focusSessions.filter(s => s.date === today)
-  
-  // Group sessions by goal
-  const sessionsByGoal = useMemo(() => {
-    const grouped: Record<string, FocusSession[]> = {}
-    todaySessions.forEach(session => {
-      const goalId = session.goalId || "no-goal"
-      if (!grouped[goalId]) grouped[goalId] = []
-      grouped[goalId].push(session)
-    })
-    return grouped
-  }, [todaySessions])
-  
-  // Format time for display
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
   
   // Handle calendar target updates
   const handleUpdateTarget = (date: string, targetMinutes: number) => {
@@ -489,7 +476,7 @@ export default function TimePage() {
                     seconds={currentElapsedSeconds}
                     isRunning={isRunning}
                     progress={progress}
-                    accumulatedMinutes={accumulatedMinutes}
+                    accumulatedMinutes={accumulatedMinutesForTarget}
                     targetMinutes={targetMinutes}
                     size={300}
                     strokeWidth={10}
@@ -567,7 +554,7 @@ export default function TimePage() {
             {/* Stats Card */}
             <TimerStats
               sessionMinutes={Math.floor(currentElapsedSeconds / 60)}
-              accumulatedMinutes={accumulatedMinutes}
+              accumulatedMinutes={accumulatedMinutesForTarget}
               targetMinutes={targetMinutes}
               progress={progress}
               sessionsToday={todaySessions.length}
@@ -595,9 +582,14 @@ export default function TimePage() {
                 ) : (
                   <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-1">
                     {activeGoals.slice(0, 6).map((goal, index) => {
-                      const goalAccumulated = focusSessions
+                      const goalAccumulatedTotal = focusSessions
                         .filter(s => s.goalId === goal.id)
                         .reduce((acc, s) => acc + s.minutes, 0)
+                      const goalAccumulatedToday = todaySessions
+                        .filter(s => s.goalId === goal.id)
+                        .reduce((acc, s) => acc + s.minutes, 0)
+                      const goalSessionMinutes = Math.floor(getElapsedSecondsForGoal(goal.id) / 60)
+                      const goalTrackedMinutes = (goal.useDailyTargets ? goalAccumulatedToday : goalAccumulatedTotal) + goalSessionMinutes
                       
                       return (
                         <motion.div
@@ -609,8 +601,8 @@ export default function TimePage() {
                           <GoalCard
                             goal={goal}
                             isSelected={selectedGoalId === goal.id}
-                            isRunning={selectedGoalId === goal.id && isRunning}
-                            accumulatedMinutes={goalAccumulated}
+                            isRunning={runningGoalKey === goal.id}
+                            accumulatedMinutes={goalTrackedMinutes}
                             onSelect={() => selectGoal(goal.id)}
                             onStartTimer={() => startGoalTimer(goal)}
                           />
