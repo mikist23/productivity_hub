@@ -56,6 +56,18 @@ export interface FocusSession {
     timestamp: string // ISO string
 }
 
+export interface TimerDraft {
+    seconds: number
+    sessionLabel?: string
+}
+
+export interface TimerState {
+    selectedGoalId: string
+    runningGoalId: string | null
+    startedAtMs: number | null
+    drafts: Record<string, TimerDraft>
+}
+
 export interface GoalRoadmapItem {
     id: string
     title: string
@@ -173,6 +185,15 @@ export interface DashboardContextType {
   addFocusSession: (minutes: number, label?: string, goalId?: string) => void
   todayFocusMinutes: number
 
+  timerState: TimerState
+  selectTimerGoal: (goalId: string) => void
+  setTimerSessionLabel: (goalId: string | undefined, label: string) => void
+  startTimer: (goalId?: string) => void
+  pauseTimer: (goalId?: string) => void
+  resetTimer: (goalId?: string) => void
+  getTimerElapsedSeconds: (goalId?: string, nowMs?: number) => number
+  logTimerSession: (goalId?: string) => void
+
   // Phase 3
   goals: Goal[]
   addGoal: (goal: NewGoalInput) => void
@@ -234,6 +255,14 @@ const emptyActivities: ActivityLog[] = []
 const emptyMapPins: MapPin[] = []
 const emptyRecipes: Recipe[] = []
 const emptyPosts: Post[] = []
+const emptyTimerDrafts: Record<string, TimerDraft> = {}
+
+const defaultTimerState: TimerState = {
+  selectedGoalId: "",
+  runningGoalId: null,
+  startedAtMs: null,
+  drafts: emptyTimerDrafts,
+}
 
 const defaultMapView: MapViewState = {
   // Roughly center of the contiguous US
@@ -279,6 +308,10 @@ function goalTrackedMinutesForDate(goalId: string, date: string, sessions: Focus
     .reduce((acc, s) => acc + (Number.isFinite(s.minutes) ? s.minutes : 0), 0)
 }
 
+function timerKey(goalId?: string) {
+  return goalId && goalId.length > 0 ? goalId : "no-goal"
+}
+
 function goalTimeProgress(goal: Goal, sessions: FocusSession[]) {
   if (goal.targetMinutes == null) return null
   const target = Number(goal.targetMinutes)
@@ -313,7 +346,7 @@ function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
   if (daily != null) progress = Math.max(progress, daily)
 
   const status: GoalStatus =
-    progress >= 100 ? "completed" : goal.status === "completed" ? "inprogress" : goal.status
+    progress >= 100 ? "completed" : goal.status === "completed" ? "inprogress" : progress > 0 && goal.status === "todo" ? "inprogress" : goal.status
   return { ...goal, progress, status }
 }
 
@@ -332,6 +365,39 @@ function asMapView(value: unknown): MapViewState {
     return defaultMapView
   }
   return { lat: candidate.lat, lng: candidate.lng, zoom: candidate.zoom }
+}
+
+function asTimerState(value: unknown): TimerState {
+  if (!value || typeof value !== "object") return defaultTimerState
+  const candidate = value as Partial<TimerState>
+  const selectedGoalId = typeof candidate.selectedGoalId === "string" ? candidate.selectedGoalId : ""
+  const runningGoalId =
+    typeof candidate.runningGoalId === "string" ? candidate.runningGoalId : candidate.runningGoalId === null ? null : null
+  const startedAtMs = typeof candidate.startedAtMs === "number" && Number.isFinite(candidate.startedAtMs)
+    ? candidate.startedAtMs
+    : null
+
+  const draftsRaw = candidate.drafts
+  const drafts: Record<string, TimerDraft> = {}
+  if (draftsRaw && typeof draftsRaw === "object") {
+    for (const [key, raw] of Object.entries(draftsRaw as Record<string, unknown>)) {
+      if (!raw || typeof raw !== "object") continue
+      const item = raw as Partial<TimerDraft>
+      drafts[key] = {
+        seconds: typeof item.seconds === "number" && Number.isFinite(item.seconds) ? Math.max(0, Math.floor(item.seconds)) : 0,
+        sessionLabel: typeof item.sessionLabel === "string" && item.sessionLabel.trim().length > 0
+          ? item.sessionLabel
+          : undefined,
+      }
+    }
+  }
+
+  return {
+    selectedGoalId,
+    runningGoalId,
+    startedAtMs,
+    drafts,
+  }
 }
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
@@ -357,6 +423,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [mapView, setMapViewState] = React.useState<MapViewState>(defaultMapView)
   const [recipes, setRecipes] = React.useState<Recipe[]>(emptyRecipes)
   const [posts, setPosts] = React.useState<Post[]>(emptyPosts)
+  const [timerState, setTimerState] = React.useState<TimerState>(defaultTimerState)
   const cloudSyncRef = React.useRef({ loaded: false, skipNextSave: false })
 
   const cloudPayload = React.useMemo<CloudDashboardPayload>(
@@ -373,8 +440,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       mapView: mapView ?? defaultMapView,
       recipes: recipes as unknown[],
       posts: posts as unknown[],
+      timerState: timerState as unknown as Record<string, unknown>,
     }),
-    [focus, focusSessions, goals, jobs, mapPins, mapView, posts, recipes, recentActivities, skills, tasks, userProfile]
+    [focus, focusSessions, goals, jobs, mapPins, mapView, posts, recipes, recentActivities, skills, tasks, timerState, userProfile]
   )
 
   React.useEffect(() => {
@@ -407,6 +475,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setMapViewState(asMapView(data.mapView))
         setRecipes(asArray<Recipe>(data.recipes, emptyRecipes))
         setPosts(asArray<Post>(data.posts, emptyPosts))
+        setTimerState(asTimerState(data.timerState))
       } catch {
         // Keep local data when cloud read fails.
       } finally {
@@ -433,6 +502,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setRecipes,
     setSkills,
     setTasks,
+    setTimerState,
     setUserProfile,
     user?.id,
   ])
@@ -599,7 +669,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           setGoals(prev => prev.map(g => {
               if (g.id !== goalId) return g
               const next = computeGoalDerived(g, nextSessionsForCalc)
-              
+              const nextStatus: GoalStatus = g.status === "todo" && next.progress < 100 ? "inprogress" : next.status
+               
               // Update daily target if applicable
               if (g.useDailyTargets && g.dailyTargets) {
                   const today = new Date().toISOString().split('T')[0]
@@ -613,12 +684,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
                           actualMinutes: newActual,
                           isComplete: newActual >= updatedTargets[todayTargetIndex].targetMinutes
                       }
-                      return { ...next, dailyTargets: updatedTargets }
+                      return { ...next, status: nextStatus, dailyTargets: updatedTargets }
                   }
               }
-              
+               
               if (next.progress >= 100 && g.progress < 100) completedTitle = g.title
-              return next
+              return { ...next, status: nextStatus }
           }))
       }
 
@@ -633,6 +704,140 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       )
 
       if (completedTitle) logActivity(`Goal Reached: ${completedTitle}!`, "goal")
+  }
+
+  const getElapsedFromState = (state: TimerState, goalId?: string, nowMs = Date.now()) => {
+      const key = timerKey(goalId)
+      const base = state.drafts[key]?.seconds ?? 0
+      if (state.runningGoalId !== (goalId || "") || !state.startedAtMs) return base
+      const live = Math.max(0, Math.floor((nowMs - state.startedAtMs) / 1000))
+      return base + live
+  }
+
+  const selectTimerGoal = (goalId: string) => {
+      setTimerState(prev => ({ ...prev, selectedGoalId: goalId }))
+  }
+
+  const setTimerSessionLabel = (goalId: string | undefined, label: string) => {
+      const key = timerKey(goalId)
+      setTimerState(prev => ({
+          ...prev,
+          drafts: {
+              ...prev.drafts,
+              [key]: {
+                  ...(prev.drafts[key] ?? { seconds: 0 }),
+                  sessionLabel: label.trim() || undefined,
+              },
+          },
+      }))
+  }
+
+  const getTimerElapsedSeconds = (goalId?: string, nowMs = Date.now()) => {
+      return getElapsedFromState(timerState, goalId, nowMs)
+  }
+
+  const pauseTimer = (goalId?: string) => {
+      const nowMs = Date.now()
+      const targetGoalId = typeof goalId === "string" ? goalId : timerState.runningGoalId
+      if (targetGoalId == null || timerState.runningGoalId !== targetGoalId || !timerState.startedAtMs) return
+      const key = timerKey(targetGoalId)
+
+      setTimerState(prev => {
+          if (prev.runningGoalId !== targetGoalId || !prev.startedAtMs) return prev
+          const live = Math.max(0, Math.floor((nowMs - prev.startedAtMs) / 1000))
+          const existing = prev.drafts[key]?.seconds ?? 0
+          return {
+              ...prev,
+              runningGoalId: null,
+              startedAtMs: null,
+              drafts: {
+                  ...prev.drafts,
+                  [key]: {
+                      ...(prev.drafts[key] ?? { seconds: 0 }),
+                      seconds: existing + live,
+                  },
+              },
+          }
+      })
+  }
+
+  const startTimer = (goalId?: string) => {
+      const targetGoalId = goalId || ""
+      const nowMs = Date.now()
+
+      setTimerState(prev => {
+          let next = prev
+          if (prev.runningGoalId !== null && prev.runningGoalId !== targetGoalId && prev.startedAtMs) {
+              const runningKey = timerKey(prev.runningGoalId)
+              const live = Math.max(0, Math.floor((nowMs - prev.startedAtMs) / 1000))
+              const existing = prev.drafts[runningKey]?.seconds ?? 0
+              next = {
+                  ...prev,
+                  runningGoalId: null,
+                  startedAtMs: null,
+                  drafts: {
+                      ...prev.drafts,
+                      [runningKey]: {
+                          ...(prev.drafts[runningKey] ?? { seconds: 0 }),
+                          seconds: existing + live,
+                      },
+                  },
+              }
+          }
+
+          return {
+              ...next,
+              selectedGoalId: targetGoalId,
+              runningGoalId: targetGoalId,
+              startedAtMs: nowMs,
+          }
+      })
+
+      if (targetGoalId) {
+          setGoals(prev => prev.map(g => {
+              if (g.id !== targetGoalId || g.status !== "todo") return g
+              return { ...g, status: "inprogress" }
+          }))
+      }
+  }
+
+  const resetTimer = (goalId?: string) => {
+      const targetGoalId = goalId || timerState.selectedGoalId || ""
+      const key = timerKey(targetGoalId)
+      pauseTimer(targetGoalId)
+      setTimerState(prev => ({
+          ...prev,
+          drafts: {
+              ...prev.drafts,
+              [key]: {
+                  ...(prev.drafts[key] ?? { seconds: 0 }),
+                  seconds: 0,
+              },
+          },
+      }))
+  }
+
+  const logTimerSession = (goalId?: string) => {
+      const targetGoalId = goalId || timerState.selectedGoalId || ""
+      const key = timerKey(targetGoalId)
+      const elapsed = getElapsedFromState(timerState, targetGoalId)
+      if (elapsed <= 0) return
+
+      const minutes = Math.max(1, Math.round(elapsed / 60))
+      const label = timerState.drafts[key]?.sessionLabel
+      addFocusSession(minutes, label || undefined, targetGoalId || undefined)
+
+      pauseTimer(targetGoalId)
+      setTimerState(prev => ({
+          ...prev,
+          drafts: {
+              ...prev.drafts,
+              [key]: {
+                  ...(prev.drafts[key] ?? { seconds: 0 }),
+                  seconds: 0,
+              },
+          },
+      }))
   }
   
   // --- Goal Methods ---
@@ -741,6 +946,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const deleteGoal = (id: string) => {
       setGoals(prev => prev.filter(g => g.id !== id))
+      setTimerState(prev => {
+          const nextDrafts = { ...prev.drafts }
+          delete nextDrafts[timerKey(id)]
+          return {
+              ...prev,
+              selectedGoalId: prev.selectedGoalId === id ? "" : prev.selectedGoalId,
+              runningGoalId: prev.runningGoalId === id ? null : prev.runningGoalId,
+              startedAtMs: prev.runningGoalId === id ? null : prev.startedAtMs,
+              drafts: nextDrafts,
+          }
+      })
   }
 
   // --- Daily Targets Methods ---
@@ -912,6 +1128,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       })
   }
 
+  React.useEffect(() => {
+      setTimerState(prev => {
+          if (!prev.selectedGoalId && prev.runningGoalId == null) return prev
+          const hasSelected = prev.selectedGoalId ? goals.some(g => g.id === prev.selectedGoalId) : true
+          const hasRunning = prev.runningGoalId ? goals.some(g => g.id === prev.runningGoalId) : true
+          if (hasSelected && hasRunning) return prev
+          return {
+              ...prev,
+              selectedGoalId: hasSelected ? prev.selectedGoalId : "",
+              runningGoalId: hasRunning ? prev.runningGoalId : null,
+              startedAtMs: hasRunning ? prev.startedAtMs : null,
+          }
+      })
+  }, [goals])
+
     return (
     <DashboardContext.Provider value={{
       userProfile,
@@ -933,6 +1164,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       focusSessions,
       addFocusSession,
       todayFocusMinutes,
+      timerState,
+      selectTimerGoal,
+      setTimerSessionLabel,
+      startTimer,
+      pauseTimer,
+      resetTimer,
+      getTimerElapsedSeconds,
+      logTimerSession,
       goals,
       addGoal,
       updateGoalStatus,

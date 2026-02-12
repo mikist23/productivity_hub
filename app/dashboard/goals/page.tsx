@@ -146,6 +146,28 @@ export default function GoalsPage() {
                                         <span className="text-xs text-muted-foreground capitalize">{goal.priority} Priority</span>
                                     </div>
 
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {([
+                                        { key: "todo", label: "To Do" },
+                                        { key: "inprogress", label: "In Progress" },
+                                        { key: "completed", label: "Completed" },
+                                      ] as Array<{ key: GoalStatus; label: string }>).map((option) => (
+                                        <Button
+                                          key={option.key}
+                                          type="button"
+                                          size="sm"
+                                          variant={goal.status === option.key ? "primary" : "outline"}
+                                          className="h-7 px-2 text-[11px]"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            updateGoalStatus(goal.id, option.key)
+                                          }}
+                                        >
+                                          {option.label}
+                                        </Button>
+                                      ))}
+                                    </div>
+
                                     <div className="space-y-1 pt-1">
                                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                                         <span>Progress</span>

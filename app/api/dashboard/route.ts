@@ -24,6 +24,7 @@ const dashboardSchema = z.object({
   mapView: mapViewSchema.default(defaultCloudDashboardPayload.mapView),
   recipes: z.array(z.unknown()).default(defaultCloudDashboardPayload.recipes),
   posts: z.array(z.unknown()).default(defaultCloudDashboardPayload.posts),
+  timerState: z.record(z.string(), z.unknown()).default(defaultCloudDashboardPayload.timerState),
 })
 
 export async function GET(req: NextRequest) {

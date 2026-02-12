@@ -44,20 +44,18 @@ export default function TimePage() {
     focusStreaks,
     goalStreaks,
     updateDailyTarget,
-    setGoalDailyTargets
+    setGoalDailyTargets,
+    timerState,
+    selectTimerGoal,
+    setTimerSessionLabel,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    getTimerElapsedSeconds,
+    logTimerSession,
   } = useDashboard()
-  
-  type TimerDraft = {
-    seconds: number
-    sessionLabel?: string
-  }
 
-  const [selectedGoalId, setSelectedGoalId] = useState<string>("")
-  const [runningGoalKey, setRunningGoalKey] = useState<string | null>(null)
-  const [startedAtMs, setStartedAtMs] = useState<number | null>(null)
-  const [drafts, setDrafts] = useState<Record<string, TimerDraft>>({})
   const [tick, setTick] = useState(() => Date.now())
-  const [sessionLabel, setSessionLabel] = useState("")
   const [showGoalSelector, setShowGoalSelector] = useState(false)
   
   // Celebration state
@@ -66,16 +64,18 @@ export default function TimePage() {
   const [hasCelebrated, setHasCelebrated] = useState(false)
   
   const goalKey = useCallback((goalId?: string) => (goalId && goalId.length > 0 ? goalId : "no-goal"), [])
+  const selectedGoalId = timerState.selectedGoalId
+  const sessionLabel = timerState.drafts[goalKey(selectedGoalId)]?.sessionLabel ?? ""
   const today = new Date().toISOString().split("T")[0]
   const todaySessions = useMemo(() => focusSessions.filter(s => s.date === today), [focusSessions, today])
 
   useEffect(() => {
-    if (!runningGoalKey) return
+    if (timerState.runningGoalId == null) return
     const interval = setInterval(() => {
       setTick(Date.now())
     }, 1000)
     return () => clearInterval(interval)
-  }, [runningGoalKey])
+  }, [timerState.runningGoalId])
 
   // Derived state
   const selectedGoal = useMemo(() => 
@@ -89,15 +89,11 @@ export default function TimePage() {
   )
   
   const selectedGoalKey = goalKey(selectedGoalId)
-  const isRunning = runningGoalKey === selectedGoalKey
+  const isRunning = timerState.runningGoalId === selectedGoalId
 
   const getElapsedSecondsForGoal = useCallback((goalId?: string) => {
-    const key = goalKey(goalId)
-    const base = drafts[key]?.seconds ?? 0
-    if (runningGoalKey !== key || !startedAtMs) return base
-    const live = Math.max(0, Math.floor((tick - startedAtMs) / 1000))
-    return base + live
-  }, [drafts, goalKey, runningGoalKey, startedAtMs, tick])
+    return getTimerElapsedSeconds(goalId, tick)
+  }, [getTimerElapsedSeconds, tick])
 
   const currentElapsedSeconds = useMemo(() => {
     return getElapsedSecondsForGoal(selectedGoalId)
@@ -161,21 +157,9 @@ export default function TimePage() {
       setCelebrationGoal(selectedGoal)
       setShowCelebration(true)
       setHasCelebrated(true)
-      setDrafts(prev => {
-        const live = startedAtMs ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)) : 0
-        const existing = prev[selectedGoalKey]?.seconds ?? 0
-        return {
-          ...prev,
-          [selectedGoalKey]: {
-            ...(prev[selectedGoalKey] ?? { seconds: 0 }),
-            seconds: existing + live,
-          },
-        }
-      })
-      setRunningGoalKey(null)
-      setStartedAtMs(null)
+      pauseTimer(selectedGoal.id)
     }
-  }, [hasCelebrated, isRunning, progress, selectedGoal, selectedGoalKey, startedAtMs])
+  }, [hasCelebrated, isRunning, pauseTimer, progress, selectedGoal])
   
   // Reset celebration state when goal changes
   useEffect(() => {
@@ -183,69 +167,24 @@ export default function TimePage() {
   }, [selectedGoalId])
   
   // Handlers
-  const pauseGoal = useCallback((goalId?: string) => {
-    const key = goalKey(goalId)
-    if (runningGoalKey !== key || !startedAtMs) return
-    const live = Math.max(0, Math.floor((tick - startedAtMs) / 1000))
-    setDrafts(prev => {
-      const existing = prev[key]?.seconds ?? 0
-      return {
-        ...prev,
-        [key]: {
-          ...(prev[key] ?? { seconds: 0 }),
-          seconds: existing + live,
-        },
-      }
-    })
-    setRunningGoalKey(null)
-    setStartedAtMs(null)
-  }, [goalKey, runningGoalKey, startedAtMs])
-
-  const startGoal = useCallback((goalId?: string) => {
-    const nextKey = goalKey(goalId)
-    if (runningGoalKey && runningGoalKey !== nextKey) {
-      const runningGoalId = runningGoalKey === "no-goal" ? "" : runningGoalKey
-      pauseGoal(runningGoalId)
-    }
-    setRunningGoalKey(nextKey)
-    setStartedAtMs(Date.now())
-  }, [goalKey, pauseGoal, runningGoalKey])
-
   const toggleTimer = () => {
     if (isRunning) {
-      pauseGoal(selectedGoalId)
+      pauseTimer(selectedGoalId)
       return
     }
-    startGoal(selectedGoalId)
+    startTimer(selectedGoalId)
   }
   
-  const resetTimer = () => {
-    pauseGoal(selectedGoalId)
-    setDrafts(prev => ({
-      ...prev,
-      [selectedGoalKey]: {
-        ...(prev[selectedGoalKey] ?? { seconds: 0 }),
-        seconds: 0,
-      },
-    }))
+  const handleResetTimer = () => {
+    resetTimer(selectedGoalId)
   }
   
   const logSession = () => {
     const time = currentElapsedSeconds
     if (time <= 0) return
-    
-    const minutes = Math.max(1, Math.round(time / 60))
-    addFocusSession(minutes, sessionLabel || undefined, selectedGoalId || undefined)
-    
-    pauseGoal(selectedGoalId)
-    setDrafts(prev => ({
-      ...prev,
-      [selectedGoalKey]: {
-        ...(prev[selectedGoalKey] ?? { seconds: 0 }),
-        seconds: 0,
-      },
-    }))
-    setSessionLabel("")
+
+    logTimerSession(selectedGoalId)
+    setTimerSessionLabel(selectedGoalId, "")
   }
   
   const quickAddTime = (minutes: number) => {
@@ -257,34 +196,22 @@ export default function TimePage() {
   }
   
   const selectGoal = (goalId: string) => {
-    setSelectedGoalId(goalId)
+    selectTimerGoal(goalId)
     setShowGoalSelector(false)
-    setSessionLabel(drafts[goalKey(goalId)]?.sessionLabel ?? "")
   }
   
   const startGoalTimer = (goal: Goal) => {
-    setSelectedGoalId(goal.id)
+    selectTimerGoal(goal.id)
     setShowGoalSelector(false)
-    setSessionLabel(drafts[goalKey(goal.id)]?.sessionLabel ?? goal.title)
-    startGoal(goal.id)
+    setTimerSessionLabel(goal.id, timerState.drafts[goalKey(goal.id)]?.sessionLabel ?? goal.title)
+    startTimer(goal.id)
   }
 
   useEffect(() => {
-    setDrafts(prev => ({
-      ...prev,
-      [selectedGoalKey]: {
-        ...(prev[selectedGoalKey] ?? { seconds: 0 }),
-        sessionLabel: sessionLabel.trim() || undefined,
-      },
-    }))
-  }, [selectedGoalKey, sessionLabel])
-
-  useEffect(() => {
     if (selectedGoalId && !goals.some(goal => goal.id === selectedGoalId)) {
-      setSelectedGoalId("")
-      setSessionLabel(drafts[goalKey("")]?.sessionLabel ?? "")
+      selectTimerGoal("")
     }
-  }, [drafts, goalKey, goals, selectedGoalId])
+  }, [goals, selectTimerGoal, selectedGoalId])
   
   // Handle calendar target updates
   const handleUpdateTarget = (date: string, targetMinutes: number) => {
@@ -436,7 +363,7 @@ export default function TimePage() {
                       variant="outline"
                       size="icon"
                       className="h-14 w-14 rounded-2xl border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-white"
-                      onClick={resetTimer}
+                      onClick={handleResetTimer}
                       disabled={currentElapsedSeconds === 0}
                     >
                       <Square className="h-5 w-5 fill-current" />
@@ -526,7 +453,7 @@ export default function TimePage() {
                   </div>
                 ) : (
                   <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-1">
-                    {activeGoals.slice(0, 6).map((goal, index) => {
+                    {activeGoals.map((goal, index) => {
                       const goalAccumulatedTotal = focusSessions
                         .filter(s => s.goalId === goal.id)
                         .reduce((acc, s) => acc + s.minutes, 0)
@@ -546,7 +473,7 @@ export default function TimePage() {
                           <GoalCard
                             goal={goal}
                             isSelected={selectedGoalId === goal.id}
-                            isRunning={runningGoalKey === goal.id}
+                            isRunning={timerState.runningGoalId === goal.id}
                             accumulatedMinutes={goalTrackedMinutes}
                             onSelect={() => selectGoal(goal.id)}
                             onStartTimer={() => startGoalTimer(goal)}
@@ -636,10 +563,10 @@ export default function TimePage() {
         message="You've reached your target for today! Great job staying focused."
         onClose={() => {
           setShowCelebration(false)
-          resetTimer()
+          handleResetTimer()
         }}
         onContinue={() => {
-          startGoal(selectedGoalId)
+          startTimer(selectedGoalId)
         }}
       />
     </motion.div>

@@ -14,6 +14,7 @@ export interface UserDashboardDocument {
   mapView: Record<string, unknown>
   recipes: unknown[]
   posts: unknown[]
+  timerState: Record<string, unknown>
   updatedAt?: Date
   createdAt?: Date
 }
@@ -33,6 +34,10 @@ const UserDashboardSchema = new Schema<UserDashboardDocument>(
     mapView: { type: Schema.Types.Mixed, default: { lat: 39.8283, lng: -98.5795, zoom: 4 } },
     recipes: { type: [Schema.Types.Mixed], default: [] },
     posts: { type: [Schema.Types.Mixed], default: [] },
+    timerState: {
+      type: Schema.Types.Mixed,
+      default: { selectedGoalId: "", runningGoalId: null, startedAtMs: null, drafts: {} },
+    },
   },
   {
     timestamps: true,

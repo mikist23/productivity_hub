@@ -15,6 +15,7 @@ export type CloudDashboardPayload = {
   }
   recipes: unknown[]
   posts: unknown[]
+  timerState: Record<string, unknown>
 }
 
 export const defaultCloudDashboardPayload: CloudDashboardPayload = {
@@ -34,4 +35,10 @@ export const defaultCloudDashboardPayload: CloudDashboardPayload = {
   },
   recipes: [],
   posts: [],
+  timerState: {
+    selectedGoalId: "",
+    runningGoalId: null,
+    startedAtMs: null,
+    drafts: {},
+  },
 }

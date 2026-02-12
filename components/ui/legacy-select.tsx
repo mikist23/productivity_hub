@@ -7,7 +7,7 @@ export type LegacySelectProps = {
   onValueChange?: (value: string) => void
   children: React.ReactNode
   className?: string
-} & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'>
+} & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value'>
 
 const LegacySelect = React.forwardRef<HTMLSelectElement, LegacySelectProps>(
   ({ className, children, value, onValueChange, onChange, ...props }, ref) => {
