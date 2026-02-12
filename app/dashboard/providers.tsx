@@ -318,6 +318,30 @@ function computeGoalDerived(goal: Goal, sessions: FocusSession[]) {
   return { ...goal, progress, status }
 }
 
+interface DashboardCloudData {
+  userProfile: UserProfile
+  skills: SkillCategory[]
+  jobs: JobApplication[]
+  focus: string
+  tasks: Task[]
+  focusSessions: FocusSession[]
+  goals: Goal[]
+  recentActivities: ActivityLog[]
+  mapPins: MapPin[]
+  mapView: MapViewState
+  recipes: Recipe[]
+  posts: Post[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function readArray<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback
+}
+
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id ?? "anon"
@@ -375,6 +399,152 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   )
   const [recipes, setRecipes] = useLocalStorageJsonState<Recipe[]>(storageKey("dashboard_recipes"), emptyRecipes)
   const [posts, setPosts] = useLocalStorageJsonState<Post[]>(storageKey("dashboard_posts"), emptyPosts)
+  const [, setCloudSyncError] = React.useState<string | null>(null)
+  const isHydratingRef = React.useRef(false)
+  const hasHydratedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    let ignore = false
+
+    const hydrateFromMongo = async () => {
+      if (!userId || userId === "anon") {
+        hasHydratedRef.current = true
+        return
+      }
+
+      isHydratingRef.current = true
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "GET",
+          headers: {
+            "x-mm-user-id": userId,
+          },
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          if (response.status !== 503) {
+            const payload = (await response.json().catch(() => ({}))) as { error?: string }
+            if (!ignore) setCloudSyncError(payload.error ?? "Failed to load cloud data")
+          }
+          return
+        }
+
+        const payload = (await response.json()) as {
+          document?: { data?: Record<string, unknown> | null } | null
+        }
+        const doc = payload.document
+        if (!doc?.data || !isRecord(doc.data) || ignore) return
+
+        const data = doc.data
+        if (isRecord(data.userProfile)) setUserProfile(data.userProfile as unknown as UserProfile)
+        setSkills(readArray<SkillCategory>(data.skills, emptySkillCategories))
+        setJobs(readArray<JobApplication>(data.jobs, emptyJobs))
+        setFocusState(typeof data.focus === "string" ? data.focus : "")
+        setTasks(readArray<Task>(data.tasks, emptyTasks))
+        setFocusSessions(readArray<FocusSession>(data.focusSessions, emptyFocusSessions))
+        setGoals(readArray<Goal>(data.goals, emptyGoals))
+        setRecentActivities(readArray<ActivityLog>(data.recentActivities, emptyActivities))
+        setMapPins(readArray<MapPin>(data.mapPins, emptyMapPins))
+        setMapViewState(isRecord(data.mapView) ? (data.mapView as unknown as MapViewState) : defaultMapView)
+        setRecipes(readArray<Recipe>(data.recipes, emptyRecipes))
+        setPosts(readArray<Post>(data.posts, emptyPosts))
+        if (!ignore) setCloudSyncError(null)
+      } catch (error) {
+        if (!ignore) {
+          setCloudSyncError(error instanceof Error ? error.message : "Failed to load cloud data")
+        }
+      } finally {
+        isHydratingRef.current = false
+        hasHydratedRef.current = true
+      }
+    }
+
+    hydrateFromMongo()
+
+    return () => {
+      ignore = true
+    }
+  }, [
+    userId,
+    setFocusSessions,
+    setFocusState,
+    setGoals,
+    setJobs,
+    setMapPins,
+    setMapViewState,
+    setPosts,
+    setRecentActivities,
+    setRecipes,
+    setSkills,
+    setTasks,
+    setUserProfile,
+  ])
+
+  React.useEffect(() => {
+    if (!hasHydratedRef.current || isHydratingRef.current) return
+    if (!userId || userId === "anon") return
+
+    const payload: DashboardCloudData = {
+      userProfile,
+      skills,
+      jobs,
+      focus,
+      tasks,
+      focusSessions,
+      goals,
+      recentActivities,
+      mapPins,
+      mapView,
+      recipes,
+      posts,
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-mm-user-id": userId,
+          },
+          body: JSON.stringify({ data: payload }),
+          signal: controller.signal,
+        })
+
+        if (!response.ok && response.status !== 503) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string }
+          setCloudSyncError(data.error ?? "Cloud sync failed")
+          return
+        }
+
+        setCloudSyncError(null)
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return
+        setCloudSyncError(error instanceof Error ? error.message : "Cloud sync failed")
+      }
+    }, 800)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [
+    focus,
+    focusSessions,
+    goals,
+    jobs,
+    mapPins,
+    mapView,
+    posts,
+    recentActivities,
+    recipes,
+    skills,
+    tasks,
+    userId,
+    userProfile,
+  ])
 
   // --- Helper to Log Activity ---
   const logActivity = (text: string, type: ActivityLog["type"]) => {
