@@ -385,9 +385,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const hydrateFromCloud = async () => {
       try {
         const res = await fetch("/api/dashboard", {
-          headers: {
-            "x-mapmonet-user-id": user.id,
-          },
+          credentials: "same-origin",
         })
         if (!res.ok) return
 
@@ -453,10 +451,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "x-mapmonet-user-id": user.id,
           },
           body: JSON.stringify(cloudPayload),
           signal: controller.signal,
+          credentials: "same-origin",
         })
       } catch {
         // Keep local updates even if cloud write fails.

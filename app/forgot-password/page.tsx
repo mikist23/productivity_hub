@@ -15,7 +15,6 @@ export default function ForgotPasswordPage() {
   const { initiatePasswordReset } = useAuth()
   const [email, setEmail] = useState("")
   const [step, setStep] = useState<"email" | "success" | "error">("email")
-  const [recoveryCode, setRecoveryCode] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -28,7 +27,6 @@ export default function ForgotPasswordPage() {
       const result = await initiatePasswordReset(email)
       
       if (result.ok) {
-        setRecoveryCode(result.recoveryCode)
         setStep("success")
       } else {
         setError(result.error)
@@ -129,28 +127,21 @@ export default function ForgotPasswordPage() {
                     <div className="h-16 w-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">Recovery code ready</h1>
+                    <h1 className="text-2xl font-bold mb-2">Reset request accepted</h1>
                     <p className="text-muted-foreground">
-                      Use this code to reset your password
+                      Enter one of your saved recovery codes on the next screen
                     </p>
                   </div>
 
                   <div className="space-y-6">
-                    <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                      <p className="text-sm text-slate-400 mb-2">Your recovery code</p>
-                      <p className="text-3xl font-mono font-bold tracking-widest text-white select-all">
-                        {recoveryCode}
-                      </p>
-                    </div>
-
                     <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
                       <p className="text-sm text-amber-700 dark:text-amber-300">
-                        <strong>Important:</strong> This code can only be used once. 
-                        After resetting your password, you will receive new recovery codes.
+                        <strong>Important:</strong> Recovery codes are only shown when you create or regenerate them.
+                        Use one saved code now. After resetting your password, you will receive new codes.
                       </p>
                     </div>
 
-                    <Link href={`/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(recoveryCode)}`}>
+                    <Link href={`/reset-password?email=${encodeURIComponent(email)}`}>
                       <Button className="w-full h-12">
                         Continue to reset password
                       </Button>

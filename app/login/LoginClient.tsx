@@ -24,7 +24,7 @@ const features = [
   { icon: Target, text: "Track goals & milestones" },
   { icon: Clock, text: "Log focus time" },
   { icon: Zap, text: "Build productive habits" },
-  { icon: CheckCircle2, text: "100% private & local" },
+  { icon: CheckCircle2, text: "Securely synced to MongoDB" },
 ]
 
 export function LoginClient({
@@ -139,7 +139,7 @@ export function LoginClient({
             </h1>
             
             <p className="text-lg text-slate-400 mb-10 max-w-lg">
-              Track goals, manage time, and build better habits. All your data stays private on your device.
+              Track goals, manage time, and build better habits. Your data is securely stored in MongoDB.
             </p>
             
             {/* Features */}

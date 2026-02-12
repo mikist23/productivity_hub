@@ -105,9 +105,9 @@ export default function SettingsPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-mapmonet-user-id": user.id,
       },
       body: JSON.stringify(backup),
+      credentials: "same-origin",
     })
 
     if (!res.ok) {
@@ -122,9 +122,7 @@ export default function SettingsPage() {
     if (user?.id) {
       try {
         const res = await fetch("/api/dashboard", {
-          headers: {
-            "x-mapmonet-user-id": user.id,
-          },
+          credentials: "same-origin",
         })
 
         if (res.ok) {
@@ -148,7 +146,7 @@ export default function SettingsPage() {
           }
         }
       } catch {
-        // Fallback to local snapshot.
+        // Fallback to in-memory snapshot.
       }
     }
 
@@ -205,7 +203,7 @@ export default function SettingsPage() {
 
     try {
       await pushBackupToCloud(buildLocalBackup())
-      setCloudStatus("Local data migrated to cloud successfully.")
+      setCloudStatus("Data migrated to MongoDB successfully.")
     } catch (e) {
       setCloudStatus(e instanceof Error ? e.message : "Cloud migration failed.")
     } finally {
@@ -225,12 +223,10 @@ export default function SettingsPage() {
         try {
           await fetch("/api/dashboard", {
             method: "DELETE",
-            headers: {
-              "x-mapmonet-user-id": user.id,
-            },
+            credentials: "same-origin",
           })
         } catch {
-          // Continue clearing local cache.
+          // Continue with reload even if cloud delete fails.
         }
       }
 
@@ -277,7 +273,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Export and import backup files, or migrate your local data to MongoDB cloud storage.
+            Export and import backup files, or migrate in-memory data to MongoDB cloud storage.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={() => void downloadBackup()}>
@@ -287,7 +283,7 @@ export default function SettingsPage() {
               <Upload className="h-4 w-4 mr-2" /> Import Backup
             </Button>
             <Button variant="outline" onClick={() => void migrateLocalDataToCloud()} disabled={migrating}>
-              <CloudUpload className="h-4 w-4 mr-2" /> {migrating ? "Migrating..." : "Migrate Local To Cloud"}
+              <CloudUpload className="h-4 w-4 mr-2" /> {migrating ? "Migrating..." : "Migrate To MongoDB"}
             </Button>
             <input
               ref={fileInputRef}
@@ -321,7 +317,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Reset clears cloud data and local cache for this account.
+            Reset clears MongoDB data for this account.
           </p>
           <Button
             variant="outline"

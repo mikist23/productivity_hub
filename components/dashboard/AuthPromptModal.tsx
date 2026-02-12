@@ -93,7 +93,7 @@ export function AuthPromptModal({ isOpen, onClose, action = "perform this action
 
               {/* Footer */}
               <p className="mt-6 text-center text-xs text-muted-foreground">
-                Your data is stored locally on your device for privacy
+                Your data is securely stored in MongoDB for this account
               </p>
             </div>
           </motion.div>

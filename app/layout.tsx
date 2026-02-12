@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "MapMonet",
-  description: "A free, local-first productivity dashboard with goals, focus tracking, skills, jobs, and a personal map.",
+  description: "A productivity dashboard with goals, focus tracking, skills, jobs, and MongoDB-backed cloud sync.",
 };
 
 export default function RootLayout({

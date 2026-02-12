@@ -24,7 +24,7 @@ const features = [
   { icon: Target, text: "Track goals & milestones" },
   { icon: Clock, text: "Log focus time" },
   { icon: Zap, text: "Build productive habits" },
-  { icon: CheckCircle2, text: "100% private & local" },
+  { icon: CheckCircle2, text: "Securely synced to MongoDB" },
 ]
 
 export function SignupClient({ nextPath }: { nextPath?: string }) {

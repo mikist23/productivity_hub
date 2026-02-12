@@ -14,7 +14,6 @@
     "test:db": "vitest run tests/mongodb-connection.test.ts"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
     "@radix-ui/react-select": "^2.2.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

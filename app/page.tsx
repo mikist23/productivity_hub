@@ -336,7 +336,7 @@ export default function LandingPage() {
             © {new Date().getFullYear()} MapMonet • Built to stay free
           </div>
           <div className="text-xs text-slate-600">
-            Your data is stored locally in your browser
+            Your data is securely stored in MongoDB
           </div>
         </div>
       </footer>

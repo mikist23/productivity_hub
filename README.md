@@ -22,7 +22,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## MongoDB Setup
 
-This project supports cloud persistence for dashboard data in MongoDB.
+This project stores dashboard data and authentication data in MongoDB.
 
 1. Add the following environment variables in `.env.local`:
 
@@ -33,8 +33,6 @@ MONGODB_DB=productivity_hub
 
 2. Restart the dev server.
 3. Sign in and use the dashboard normally. Data is loaded from and saved to MongoDB through `/api/dashboard`.
-
-The app still keeps local state as cache/fallback for a smoother migration.
 
 ## Learn More
 

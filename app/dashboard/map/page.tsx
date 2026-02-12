@@ -126,7 +126,7 @@ export default function MapPage() {
       >
         <h1 className="text-3xl font-bold tracking-tight">Map</h1>
         <p className="text-muted-foreground">
-          Pin places for your tasks, goals, job search, and daily life — saved locally.
+          Pin places for your tasks, goals, job search, and daily life — saved to MongoDB.
         </p>
       </motion.div>
 

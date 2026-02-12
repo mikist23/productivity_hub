@@ -61,16 +61,7 @@ function ResetPasswordForm() {
       })
 
       if (result.ok) {
-        // Generate new recovery codes for display
-        const codes = Array.from({ length: 5 }, () => {
-          const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-          let code = ""
-          for (let i = 0; i < 8; i++) {
-            code += chars[Math.floor(Math.random() * chars.length)]
-          }
-          return code
-        })
-        setNewRecoveryCodes(codes)
+        setNewRecoveryCodes(result.recoveryCodes)
         setStep("success")
       } else {
         setError(result.error)
@@ -148,8 +139,10 @@ function ResetPasswordForm() {
                         id="recoveryCode"
                         type="text"
                         value={recoveryCode}
-                        readOnly
-                        className="h-12 bg-muted font-mono tracking-widest"
+                        onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
+                        className="h-12 font-mono tracking-widest"
+                        placeholder="Enter an 8-character code"
+                        required
                       />
                     </div>
 
