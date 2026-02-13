@@ -53,6 +53,12 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user && (token.uid || token.sub)) {
         session.user.id = (token.uid as string) || token.sub || ""
+        if (typeof token.name === "string" && token.name.trim()) {
+          session.user.name = token.name
+        }
+        if (typeof token.email === "string" && token.email.trim()) {
+          session.user.email = token.email
+        }
       }
       return session
     },
@@ -60,6 +66,8 @@ export const authOptions: NextAuthOptions = {
       if (user?.id) {
         token.uid = user.id
         token.sub = user.id
+        token.name = user.name
+        token.email = normalizeEmail(user.email ?? "")
       }
 
       const email = normalizeEmail((user?.email || token.email || "") as string)
@@ -84,12 +92,16 @@ export const authOptions: NextAuthOptions = {
         }
         token.uid = dbUser.userId
         token.sub = dbUser.userId
+        token.name = dbUser.name
+        token.email = dbUser.email
       } else if (email && !token.uid) {
         await connectToDatabase()
         const dbUser = await AppUser.findOne({ email }).lean()
         if (dbUser?.userId) {
           token.uid = dbUser.userId
           token.sub = dbUser.userId
+          token.name = dbUser.name
+          token.email = dbUser.email
         }
       }
 

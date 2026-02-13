@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface AddGoalModalProps {
   isOpen: boolean
@@ -17,6 +19,7 @@ interface AddGoalModalProps {
 
 export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoalModalProps) {
   const { addGoal } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/goals")
   const [title, setTitle] = useState("")
   const [targetDate, setTargetDate] = useState("")
   const [category, setCategory] = useState("Personal")
@@ -40,26 +43,28 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
       .filter(Boolean)
       .map((t) => ({ title: t, done: false }))
     
-    addGoal({
-        title: title.trim(),
-        targetDate: targetDate || new Date().toISOString().split("T")[0],
-        progress: 0,
-        status: defaultStatus,
-        category,
-        priority,
-        targetMinutes,
-        roadmap,
-        useDailyTargets: false,
-        createdAt: new Date().toISOString()
+    guard("add goals", () => {
+      addGoal({
+          title: title.trim(),
+          targetDate: targetDate || new Date().toISOString().split("T")[0],
+          progress: 0,
+          status: defaultStatus,
+          category,
+          priority,
+          targetMinutes,
+          roadmap,
+          useDailyTargets: false,
+          createdAt: new Date().toISOString()
+      })
+      
+      setTitle("")
+      setTargetDate("")
+      setCategory("Personal")
+      setPriority("medium")
+      setTargetHours("")
+      setRoadmapText("")
+      onClose()
     })
-    
-    setTitle("")
-    setTargetDate("")
-    setCategory("Personal")
-    setPriority("medium")
-    setTargetHours("")
-    setRoadmapText("")
-    onClose()
   }
 
   return (
@@ -160,6 +165,12 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
             <Button type="submit">Create Goal</Button>
         </div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </form>
     </Modal>
   )
