@@ -99,6 +99,26 @@ export default function TimePage() {
     return getElapsedSecondsForGoal(selectedGoalId)
   }, [getElapsedSecondsForGoal, selectedGoalId])
 
+  const runningGoalSessionMinutes = useMemo(() => {
+    if (!timerState.runningGoalId) return 0
+    return Math.floor(getElapsedSecondsForGoal(timerState.runningGoalId) / 60)
+  }, [getElapsedSecondsForGoal, timerState.runningGoalId])
+
+  const goalTrackedMinutesMap = useMemo(() => {
+    const tracked = new Map<string, number>()
+    activeGoals.forEach((goal) => {
+      const accumulatedTotal = focusSessions
+        .filter((s) => s.goalId === goal.id)
+        .reduce((acc, s) => acc + s.minutes, 0)
+      const accumulatedToday = todaySessions
+        .filter((s) => s.goalId === goal.id)
+        .reduce((acc, s) => acc + s.minutes, 0)
+      const runningMinutes = timerState.runningGoalId === goal.id ? runningGoalSessionMinutes : 0
+      tracked.set(goal.id, (goal.useDailyTargets ? accumulatedToday : accumulatedTotal) + runningMinutes)
+    })
+    return tracked
+  }, [activeGoals, focusSessions, runningGoalSessionMinutes, timerState.runningGoalId, todaySessions])
+
   // Calculate accumulated minutes for selected goal (all-time and today)
   const accumulatedTotalMinutes = useMemo(() => {
     if (!selectedGoal) return 0
@@ -316,7 +336,7 @@ export default function TimePage() {
                     >
                       <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-3">
                         <div className="text-sm text-slate-400 mb-2">Select a goal to track:</div>
-                        <div className="grid gap-2 max-h-64 overflow-y-auto">
+                        <div className="grid gap-2 max-h-64 overflow-y-auto overflow-x-hidden scroll-y-premium pr-1">
                           {activeGoals.map((goal) => (
                             <button
                               key={goal.id}
@@ -488,16 +508,9 @@ export default function TimePage() {
                     <p className="text-sm mt-1">Create goals to start tracking time</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-1">
+                  <div className="grid gap-3 max-h-[400px] overflow-y-auto overflow-x-hidden scroll-y-premium pr-1">
                     {activeGoals.map((goal, index) => {
-                      const goalAccumulatedTotal = focusSessions
-                        .filter(s => s.goalId === goal.id)
-                        .reduce((acc, s) => acc + s.minutes, 0)
-                      const goalAccumulatedToday = todaySessions
-                        .filter(s => s.goalId === goal.id)
-                        .reduce((acc, s) => acc + s.minutes, 0)
-                      const goalSessionMinutes = Math.floor(getElapsedSecondsForGoal(goal.id) / 60)
-                      const goalTrackedMinutes = (goal.useDailyTargets ? goalAccumulatedToday : goalAccumulatedTotal) + goalSessionMinutes
+                      const goalTrackedMinutes = goalTrackedMinutesMap.get(goal.id) ?? 0
                       
                       return (
                         <motion.div
@@ -550,7 +563,7 @@ export default function TimePage() {
                     <p className="text-sm">No sessions today</p>
                   </div>
                 ) : (
-                  <div className="space-y-0 max-h-64 overflow-y-auto">
+                  <div className="space-y-0 max-h-64 overflow-y-auto overflow-x-hidden scroll-y-premium">
                     {todaySessions.slice(0, 8).map((session, index) => {
                       const sessionGoal = session.goalId ? goals.find(g => g.id === session.goalId) : null
                       

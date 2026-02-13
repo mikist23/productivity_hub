@@ -16,21 +16,26 @@ interface CircularTimerProps {
   pulseOnRunning?: boolean
 }
 
-// Animated digit component with flip effect
-function AnimatedDigit({ value }: { value: string }) {
+function AnimatedDigit({ value, fontSize }: { value: string; fontSize: number }) {
+  const digitHeight = Math.max(32, Math.floor(fontSize * 0.94))
+  const digitWidth = Math.max(22, Math.floor(fontSize * 0.58))
+
   return (
-    <div className="relative overflow-hidden h-[1em] w-[0.65em] flex items-center justify-center">
+    <div
+      className="relative overflow-hidden flex items-center justify-center leading-none"
+      style={{ height: `${digitHeight}px`, width: `${digitWidth}px` }}
+    >
       <AnimatePresence mode="popLayout">
         <motion.span
           key={value}
-          initial={{ y: -30, opacity: 0, filter: "blur(4px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          exit={{ y: 30, opacity: 0, filter: "blur(4px)" }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 400, 
+          initial={{ y: -4, opacity: 0.2 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 4, opacity: 0 }}
+          transition={{
+            type: "spring",
+            stiffness: 320,
             damping: 30,
-            mass: 0.5
+            mass: 0.6,
           }}
           className="absolute inset-0 flex items-center justify-center text-current"
         >
@@ -41,14 +46,13 @@ function AnimatedDigit({ value }: { value: string }) {
   )
 }
 
-// Time unit display
-function TimeUnit({ value }: { value: string }) {
-  const [tens, ones] = value.split('')
-  
+function TimeUnit({ value, fontSize }: { value: string; fontSize: number }) {
+  const [tens, ones] = value.split("")
+
   return (
     <div className="flex items-center text-current">
-      <AnimatedDigit value={tens} />
-      <AnimatedDigit value={ones} />
+      <AnimatedDigit value={tens} fontSize={fontSize} />
+      <AnimatedDigit value={ones} fontSize={fontSize} />
     </div>
   )
 }
@@ -67,22 +71,28 @@ export function CircularTimer({
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (progress / 100) * circumference
-  
+  const timerFontSize = Math.max(30, Math.min(62, Math.floor(size * 0.16)))
+  const separatorFontSize = Math.max(18, Math.floor(timerFontSize * 0.55))
+  const centerInset = Math.max(24, Math.floor(size * 0.16))
+  const centerSize = size - strokeWidth * 2 - centerInset
+  const maxTimeRowWidth = Math.max(190, Math.floor(centerSize * 0.9))
+  const gradientId = React.useId().replace(/:/g, "")
+
   const formatTime = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600)
     const mins = Math.floor((totalSeconds % 3600) / 60)
     const secs = totalSeconds % 60
     return {
-      hrs: hrs.toString().padStart(2, '0'),
-      mins: mins.toString().padStart(2, '0'),
-      secs: secs.toString().padStart(2, '0')
+      hrs: hrs.toString().padStart(2, "0"),
+      mins: mins.toString().padStart(2, "0"),
+      secs: secs.toString().padStart(2, "0"),
     }
   }
-   
+
   const time = formatTime(seconds)
   const isComplete = progress >= 100
   const hasProgress = progress > 0
-  
+
   const formatAccumulated = (minutes: number) => {
     const hrs = Math.floor(minutes / 60)
     const mins = minutes % 60
@@ -92,26 +102,25 @@ export function CircularTimer({
   
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      {/* Outer glow effect when running */}
       {isRunning && pulseOnRunning && (
         <motion.div
           className="absolute inset-0 rounded-full"
           animate={{
-            boxShadow: [
-              "0 0 30px 10px rgba(16, 185, 129, 0.1)",
-              "0 0 50px 20px rgba(16, 185, 129, 0.2)",
-              "0 0 30px 10px rgba(16, 185, 129, 0.1)"
-            ]
+            opacity: [0.45, 0.78, 0.45],
+            scale: [0.985, 1.015, 0.985],
           }}
           transition={{
-            duration: 2,
+            duration: 4.2,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
+          }}
+          style={{
+            background:
+              "radial-gradient(circle, rgba(16,185,129,0.16) 0%, rgba(20,184,166,0.08) 38%, rgba(2,6,23,0) 72%)",
           }}
         />
       )}
-      
-      {/* SVG Circle */}
+
       <svg
         width={size}
         height={size}
@@ -119,7 +128,7 @@ export function CircularTimer({
         style={{ zIndex: 1 }}
       >
         <defs>
-          <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`${gradientId}-timerGradient`} x1="0%" y1="0%" x2="100%" y2="100%">
             {hasProgress ? (
               <>
                 <stop offset="0%" stopColor="#10b981" />
@@ -134,116 +143,118 @@ export function CircularTimer({
               </>
             )}
           </linearGradient>
-          
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
         </defs>
-        
-        {/* Background track */}
+
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(30, 41, 59, 0.8)"
+          stroke="rgba(51, 65, 85, 0.66)"
           strokeWidth={strokeWidth}
         />
-        
-        {/* Progress circle */}
+
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(15, 23, 42, 0.32)"
+          strokeWidth={Math.max(2, strokeWidth - 4)}
+        />
+
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#timerGradient)"
+          stroke={`url(#${gradientId}-timerGradient)`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           animate={{ strokeDashoffset }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          filter={isRunning ? "url(#glow)" : undefined}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
         />
       </svg>
-      
-      {/* Center Content - Inside the Circle */}
-      <div 
-        className="absolute flex flex-col items-center justify-center text-center z-10"
+
+      <div
+        className="absolute z-10 flex flex-col items-center justify-center rounded-full border border-slate-700/50 text-center shadow-[inset_0_1px_0_rgba(148,163,184,0.12),inset_0_-18px_38px_rgba(2,6,23,0.45)]"
         style={{
-          width: size - strokeWidth * 2 - 40,
-          height: size - strokeWidth * 2 - 40,
+          width: centerSize,
+          height: centerSize,
+          background:
+            "radial-gradient(circle_at_30%_22%,rgba(16,185,129,0.10)_0%,rgba(15,23,42,0.56)_42%,rgba(2,6,23,0.95)_100%)",
         }}
       >
-        {/* Timer Display */}
-        <div className="flex items-baseline justify-center font-mono font-bold text-white">
-          {/* Hours */}
-          <TimeUnit value={time.hrs} />
-          
-          {/* Separator */}
-          <motion.span 
-            className="text-slate-500 mx-0.5 text-4xl md:text-5xl"
-            animate={isRunning ? { opacity: [1, 0.3, 1] } : {}}
-            transition={{ duration: 1, repeat: Infinity }}
+        <div
+          className="w-full overflow-hidden px-4"
+          style={{ maxWidth: `${maxTimeRowWidth}px` }}
+        >
+          <div
+            className="flex items-center justify-center font-mono font-bold tabular-nums leading-none text-white"
+            style={{ fontSize: `${timerFontSize}px`, letterSpacing: "0.02em" }}
           >
-            :
-          </motion.span>
-          
-          {/* Minutes */}
-          <TimeUnit value={time.mins} />
-          
-          {/* Separator */}
-          <motion.span 
-            className="text-slate-500 mx-0.5 text-4xl md:text-5xl"
-            animate={isRunning ? { opacity: [1, 0.3, 1] } : {}}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
-          >
-            :
-          </motion.span>
-          
-          {/* Seconds */}
-          <TimeUnit value={time.secs} />
+            <TimeUnit value={time.hrs} fontSize={timerFontSize} />
+            <motion.span 
+              className="mx-0.5 leading-none text-slate-400"
+              style={{ fontSize: `${separatorFontSize}px` }}
+              animate={isRunning ? { opacity: [1, 0.42, 1] } : { opacity: 0.9 }}
+              transition={{ duration: 2.2, repeat: isRunning ? Infinity : 0, ease: "easeInOut" }}
+            >
+              :
+            </motion.span>
+            <TimeUnit value={time.mins} fontSize={timerFontSize} />
+            <motion.span 
+              className="mx-0.5 leading-none text-slate-400"
+              style={{ fontSize: `${separatorFontSize}px` }}
+              animate={isRunning ? { opacity: [1, 0.42, 1] } : { opacity: 0.9 }}
+              transition={{
+                duration: 2.2,
+                repeat: isRunning ? Infinity : 0,
+                delay: 1.1,
+                ease: "easeInOut",
+              }}
+            >
+              :
+            </motion.span>
+            <TimeUnit value={time.secs} fontSize={timerFontSize} />
+          </div>
         </div>
-        
-        {/* Label */}
-        <motion.div 
-          className="mt-2 text-xs font-medium text-slate-500 uppercase tracking-widest"
+
+        <motion.div
+          className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300/85"
           animate={isRunning ? { opacity: [0.6, 1, 0.6] } : {}}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
         >
           Session Time
         </motion.div>
-        
-        {/* Today Badge */}
+
         {showProgress && (
-          <motion.div 
-            className="mt-3 px-4 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/50"
+          <motion.div
+            className="mt-3 rounded-full border border-slate-600/60 bg-slate-900/68 px-4 py-1.5 shadow-inner shadow-slate-950/45"
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
           >
-            <span className="text-xs text-slate-400">Today: </span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs text-slate-300/90">Today: </span>
+            <span className="text-sm font-semibold text-white/95">
               {formatAccumulated(accumulatedMinutes)}
             </span>
           </motion.div>
         )}
-        
-        {/* Progress */}
+
         {showProgress && targetMinutes && targetMinutes > 0 && (
-          <motion.div 
+          <motion.div
             className="mt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.15, duration: 0.25 }}
           >
             <span className={cn(
               "text-xs font-semibold",
-              hasProgress ? "text-emerald-400" : "text-cyan-300"
+              hasProgress ? "text-emerald-300" : "text-cyan-300"
             )}>
-              {isComplete ? "✓ 100% complete" : `${Math.round(progress)}% complete`}
+              {isComplete ? "100% complete" : `${Math.round(progress)}% complete`}
             </span>
           </motion.div>
         )}

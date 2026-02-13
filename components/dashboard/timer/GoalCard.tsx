@@ -17,7 +17,7 @@ interface GoalCardProps {
   className?: string
 }
 
-export function GoalCard({
+export const GoalCard = React.memo(function GoalCard({
   goal,
   isSelected = false,
   isRunning = false,
@@ -73,12 +73,12 @@ export function GoalCard({
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.02, y: -2 }}
       className={cn(
-        "relative p-4 rounded-xl border cursor-pointer transition-all duration-300",
+        "relative p-4 rounded-xl border cursor-pointer transition-all duration-300 overflow-x-hidden",
         "bg-slate-800/50 backdrop-blur-sm",
         isSelected 
           ? "border-teal-500/50 bg-teal-500/10 shadow-lg shadow-teal-500/10" 
           : "border-slate-700/50 hover:border-slate-600",
-        isRunning && "ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-900",
+        isRunning && "border-emerald-400/70 shadow-[0_0_0_1px_rgba(16,185,129,0.35),0_0_28px_-14px_rgba(16,185,129,0.7)]",
         className
       )}
       onClick={onSelect}
@@ -154,12 +154,12 @@ export function GoalCard({
             transition={{ duration: 0.5, ease: "easeOut" }}
           />
           
-          {/* Shimmer effect */}
+          {/* Running progress sweep */}
           {isRunning && (
             <motion.div
-              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{ x: ["-100%", "400%"] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-teal-200/15 to-transparent"
+              animate={{ x: ["-120%", "320%"], opacity: [0.2, 0.55, 0.2] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             />
           )}
         </div>
@@ -200,7 +200,15 @@ export function GoalCard({
       )}
     </motion.div>
   )
-}
+}, (prev, next) => {
+  return (
+    prev.goal === next.goal &&
+    prev.isSelected === next.isSelected &&
+    prev.isRunning === next.isRunning &&
+    prev.accumulatedMinutes === next.accumulatedMinutes &&
+    prev.className === next.className
+  )
+})
 
 // Helper function to format duration
 function formatDuration(minutes: number): string {

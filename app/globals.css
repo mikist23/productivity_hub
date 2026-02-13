@@ -218,6 +218,34 @@ body {
   animation: bounce 0.6s ease-in-out;
 }
 
+/* Vertical-only premium scrollbar for dashboard lists */
+.scroll-y-premium {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.scroll-y-premium::-webkit-scrollbar {
+  width: 7px;
+}
+
+.scroll-y-premium::-webkit-scrollbar:horizontal {
+  width: 0;
+  height: 0;
+}
+
+.scroll-y-premium::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.scroll-y-premium::-webkit-scrollbar-thumb {
+  background: rgba(94, 234, 212, 0.35);
+}
+
+.scroll-y-premium::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 234, 212, 0.5);
+}
+
 /* Glass morphism effect */
 .glass {
   background: rgba(255, 255, 255, 0.1);
@@ -260,5 +288,4 @@ body {
 .gradient-danger {
   background: var(--gradient-danger);
 }
-
 
