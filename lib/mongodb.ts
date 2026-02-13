@@ -8,6 +8,23 @@ export function isMongoConfigured() {
   return getMongoUri().length > 0
 }
 
+export const MONGO_UNAVAILABLE_ERROR = "Database connection failed. Please try again in a moment."
+
+export function isMongoConnectionError(error: unknown) {
+  if (!(error instanceof Error)) return false
+  const message = error.message.toLowerCase()
+  return (
+    message.includes("server selection timed out") ||
+    message.includes("timed out") ||
+    message.includes("failed to connect") ||
+    message.includes("econnrefused") ||
+    message.includes("enotfound") ||
+    message.includes("querysrv") ||
+    message.includes("authentication failed") ||
+    message.includes("bad auth")
+  )
+}
+
 declare global {
   var mongooseCache: {
     conn: typeof mongoose | null
@@ -29,12 +46,24 @@ export async function connectToDatabase() {
   }
 
   if (!cache.promise) {
-    cache.promise = mongoose.connect(mongoUri, {
-      dbName: process.env.MONGODB_DB || undefined,
-      bufferCommands: false,
-    })
+    cache.promise = mongoose
+      .connect(mongoUri, {
+        dbName: process.env.MONGODB_DB || undefined,
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      })
+      .catch((error) => {
+        cache.promise = null
+        throw error
+      })
   }
 
-  cache.conn = await cache.promise
-  return cache.conn
+  try {
+    cache.conn = await cache.promise
+    return cache.conn
+  } catch (error) {
+    cache.promise = null
+    throw error
+  }
 }

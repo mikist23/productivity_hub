@@ -71,8 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         | { ok?: boolean; recoveryCodes?: string[]; error?: string }
         | null
 
+      const registerErrorByStatus: Record<number, string> = {
+        400: "Please check your signup details and try again.",
+        409: "An account with that email already exists.",
+        503: "Database connection failed. Please try again in a moment.",
+      }
+
       if (!registerRes.ok || !registerData?.ok || !Array.isArray(registerData.recoveryCodes)) {
-        return { ok: false, error: registerData?.error || "Unable to create account." }
+        const fallbackError = registerErrorByStatus[registerRes.status] || "Unable to create account."
+        return { ok: false, error: registerData?.error || fallbackError }
       }
 
       const loginRes = await signIn("credentials", {

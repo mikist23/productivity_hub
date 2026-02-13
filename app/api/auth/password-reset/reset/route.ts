@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { connectToDatabase, isMongoConfigured } from "@/lib/mongodb"
+import { connectToDatabase, isMongoConfigured, isMongoConnectionError, MONGO_UNAVAILABLE_ERROR } from "@/lib/mongodb"
 import { AppUser } from "@/lib/models/AppUser"
 import {
   buildRecoveryCodeRecords,
@@ -33,38 +33,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 })
   }
 
-  await connectToDatabase()
-  const user = await AppUser.findOne({ email })
-  if (!user || user.provider !== "local") {
-    return NextResponse.json({ error: "No account found for that email." }, { status: 404 })
-  }
-
-  const normalizedCode = parsed.data.recoveryCode.trim().toUpperCase()
-  let matchingIndex = -1
-  for (let i = 0; i < user.recoveryCodes.length; i++) {
-    const record = user.recoveryCodes[i]
-    if (record.used) continue
-    const isMatch = await matchesRecoveryCode(normalizedCode, record.codeHash)
-    if (isMatch) {
-      matchingIndex = i
-      break
+  try {
+    await connectToDatabase()
+    const user = await AppUser.findOne({ email })
+    if (!user || user.provider !== "local") {
+      return NextResponse.json({ error: "No account found for that email." }, { status: 404 })
     }
+
+    const normalizedCode = parsed.data.recoveryCode.trim().toUpperCase()
+    let matchingIndex = -1
+    for (let i = 0; i < user.recoveryCodes.length; i++) {
+      const record = user.recoveryCodes[i]
+      if (record.used) continue
+      const isMatch = await matchesRecoveryCode(normalizedCode, record.codeHash)
+      if (isMatch) {
+        matchingIndex = i
+        break
+      }
+    }
+
+    if (matchingIndex < 0) {
+      return NextResponse.json({ error: "Invalid or already used recovery code." }, { status: 400 })
+    }
+
+    user.recoveryCodes[matchingIndex].used = true
+
+    const newSalt = randomSalt(16)
+    const newPasswordHash = await hashPassword(parsed.data.newPassword, newSalt)
+    const { plainCodes, records } = await buildRecoveryCodeRecords(5)
+
+    user.salt = newSalt
+    user.passwordHash = newPasswordHash
+    user.recoveryCodes = records
+    await user.save()
+
+    return NextResponse.json({ ok: true, recoveryCodes: plainCodes })
+  } catch (error) {
+    const isDbError = isMongoConnectionError(error)
+    if (isDbError) {
+      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+    }
+    return NextResponse.json({ error: "Unable to reset password right now. Please try again." }, { status: 500 })
   }
-
-  if (matchingIndex < 0) {
-    return NextResponse.json({ error: "Invalid or already used recovery code." }, { status: 400 })
-  }
-
-  user.recoveryCodes[matchingIndex].used = true
-
-  const newSalt = randomSalt(16)
-  const newPasswordHash = await hashPassword(parsed.data.newPassword, newSalt)
-  const { plainCodes, records } = await buildRecoveryCodeRecords(5)
-
-  user.salt = newSalt
-  user.passwordHash = newPasswordHash
-  user.recoveryCodes = records
-  await user.save()
-
-  return NextResponse.json({ ok: true, recoveryCodes: plainCodes })
 }

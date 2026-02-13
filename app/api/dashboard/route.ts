@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { connectToDatabase, isMongoConfigured } from "@/lib/mongodb"
+import { connectToDatabase, isMongoConfigured, isMongoConnectionError, MONGO_UNAVAILABLE_ERROR } from "@/lib/mongodb"
 import { UserDashboard } from "@/lib/models/UserDashboard"
 import { defaultCloudDashboardPayload } from "@/lib/dashboard-defaults"
 import { resolveRequestUserId } from "@/lib/resolve-user-id"
@@ -37,19 +37,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  await connectToDatabase()
+  try {
+    await connectToDatabase()
 
-  const existing = await UserDashboard.findOne({ userId }).lean()
-  if (!existing) {
-    return NextResponse.json(defaultCloudDashboardPayload)
+    const existing = await UserDashboard.findOne({ userId }).lean()
+    if (!existing) {
+      return NextResponse.json(defaultCloudDashboardPayload)
+    }
+
+    const parsed = dashboardSchema.safeParse(existing)
+    if (!parsed.success) {
+      return NextResponse.json(defaultCloudDashboardPayload)
+    }
+
+    return NextResponse.json(parsed.data)
+  } catch (error) {
+    const isDbError = isMongoConnectionError(error)
+    if (isDbError) {
+      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+    }
+    return NextResponse.json({ error: "Unable to load dashboard right now. Please try again." }, { status: 500 })
   }
-
-  const parsed = dashboardSchema.safeParse(existing)
-  if (!parsed.success) {
-    return NextResponse.json(defaultCloudDashboardPayload)
-  }
-
-  return NextResponse.json(parsed.data)
 }
 
 export async function PUT(req: NextRequest) {
@@ -68,15 +76,23 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Invalid dashboard payload" }, { status: 400 })
   }
 
-  await connectToDatabase()
+  try {
+    await connectToDatabase()
 
-  const updated = await UserDashboard.findOneAndUpdate(
-    { userId },
-    { userId, ...parsed.data },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  ).lean()
+    const updated = await UserDashboard.findOneAndUpdate(
+      { userId },
+      { userId, ...parsed.data },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean()
 
-  return NextResponse.json({ ok: true, updatedAt: updated?.updatedAt ?? new Date().toISOString() })
+    return NextResponse.json({ ok: true, updatedAt: updated?.updatedAt ?? new Date().toISOString() })
+  } catch (error) {
+    const isDbError = isMongoConnectionError(error)
+    if (isDbError) {
+      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+    }
+    return NextResponse.json({ error: "Unable to save dashboard right now. Please try again." }, { status: 500 })
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -89,8 +105,16 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  await connectToDatabase()
-  await UserDashboard.deleteOne({ userId })
+  try {
+    await connectToDatabase()
+    await UserDashboard.deleteOne({ userId })
 
-  return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    const isDbError = isMongoConnectionError(error)
+    if (isDbError) {
+      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+    }
+    return NextResponse.json({ error: "Unable to reset cloud data right now. Please try again." }, { status: 500 })
+  }
 }

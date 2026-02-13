@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { connectToDatabase, isMongoConfigured } from "@/lib/mongodb"
+import { connectToDatabase, isMongoConfigured, isMongoConnectionError, MONGO_UNAVAILABLE_ERROR } from "@/lib/mongodb"
 import { AppUser } from "@/lib/models/AppUser"
 import {
   buildRecoveryCodeRecords,
@@ -34,26 +34,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 })
   }
 
-  await connectToDatabase()
+  try {
+    await connectToDatabase()
 
-  const existing = await AppUser.findOne({ email }).lean()
-  if (existing) {
-    return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 })
+    const existing = await AppUser.findOne({ email }).lean()
+    if (existing) {
+      return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 })
+    }
+
+    const salt = randomSalt()
+    const passwordHash = await hashPassword(parsed.data.password, salt)
+    const { plainCodes, records } = await buildRecoveryCodeRecords(5)
+
+    await AppUser.create({
+      userId: makeUserId(),
+      email,
+      name,
+      provider: "local",
+      salt,
+      passwordHash,
+      recoveryCodes: records,
+    })
+
+    return NextResponse.json({ ok: true, recoveryCodes: plainCodes })
+  } catch (error) {
+    const isDbError = isMongoConnectionError(error)
+    if (isDbError) {
+      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+    }
+    return NextResponse.json({ error: "Unable to create account right now. Please try again." }, { status: 500 })
   }
-
-  const salt = randomSalt()
-  const passwordHash = await hashPassword(parsed.data.password, salt)
-  const { plainCodes, records } = await buildRecoveryCodeRecords(5)
-
-  await AppUser.create({
-    userId: makeUserId(),
-    email,
-    name,
-    provider: "local",
-    salt,
-    passwordHash,
-    recoveryCodes: records,
-  })
-
-  return NextResponse.json({ ok: true, recoveryCodes: plainCodes })
 }
