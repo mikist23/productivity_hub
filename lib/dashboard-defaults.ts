@@ -19,7 +19,19 @@ export type CloudDashboardPayload = {
 }
 
 export const defaultCloudDashboardPayload: CloudDashboardPayload = {
-  userProfile: { name: "", role: "", bio: "" },
+  userProfile: {
+    name: "",
+    role: "",
+    bio: "",
+    email: "",
+    phone: "",
+    location: "",
+    timezone: "",
+    website: "",
+    linkedin: "",
+    github: "",
+    topFocusArea: "",
+  },
   skills: [],
   jobs: [],
   focus: "",

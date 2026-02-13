@@ -55,6 +55,14 @@ export interface UserProfile {
   name: string
   role: string
   bio: string
+  email: string
+  phone: string
+  location: string
+  timezone: string
+  website: string
+  linkedin: string
+  github: string
+  topFocusArea: string
 }
 
 export interface Task {
@@ -259,7 +267,15 @@ export interface DashboardContextType {
 const defaultProfile: UserProfile = {
   name: "",
   role: "",
-  bio: ""
+  bio: "",
+  email: "",
+  phone: "",
+  location: "",
+  timezone: "",
+  website: "",
+  linkedin: "",
+  github: "",
+  topFocusArea: ""
 }
 
 const emptySkillCategories: SkillCategory[] = []
@@ -416,6 +432,24 @@ function asTimerState(value: unknown): TimerState {
   }
 }
 
+function normalizeUserProfile(value: unknown): UserProfile {
+  if (!value || typeof value !== "object") return defaultProfile
+  const profile = value as Partial<UserProfile>
+  return {
+    name: typeof profile.name === "string" ? profile.name : "",
+    role: typeof profile.role === "string" ? profile.role : "",
+    bio: typeof profile.bio === "string" ? profile.bio : "",
+    email: typeof profile.email === "string" ? profile.email : "",
+    phone: typeof profile.phone === "string" ? profile.phone : "",
+    location: typeof profile.location === "string" ? profile.location : "",
+    timezone: typeof profile.timezone === "string" ? profile.timezone : "",
+    website: typeof profile.website === "string" ? profile.website : "",
+    linkedin: typeof profile.linkedin === "string" ? profile.linkedin : "",
+    github: typeof profile.github === "string" ? profile.github : "",
+    topFocusArea: typeof profile.topFocusArea === "string" ? profile.topFocusArea : "",
+  }
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const [userProfile, setUserProfile] = React.useState<UserProfile>(defaultProfile)
@@ -477,9 +511,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return
 
         cloudSyncRef.current.skipNextSave = true
-        setUserProfile(
-          ((data.userProfile as unknown as UserProfile) ?? defaultCloudDashboardPayload.userProfile) as UserProfile
-        )
+        setUserProfile(normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile))
         setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
         setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
         setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
@@ -564,7 +596,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setRecentActivities(prev => [newActivity, ...prev].slice(0, 20)) // Keep last 20
   }
 
-  const updateUserProfile = (profile: UserProfile) => setUserProfile(profile)
+  const updateUserProfile = (profile: UserProfile) => setUserProfile(normalizeUserProfile(profile))
 
   const addSkill = (categoryName: string, skill: Omit<SkillItem, "id">) => {
     setSkills(prev => {
