@@ -100,7 +100,7 @@ export default function LandingPage() {
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-600/20">
               M
             </div>
-            <span className="font-bold text-xl tracking-tight">MapMonet</span>
+            <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
           </motion.div>
           
           <motion.div 
@@ -151,7 +151,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300">
               <Sparkles className="h-4 w-4" />
-              <span>Free Forever • Local-first • No subscriptions</span>
+              <span>Free Forever | Local-first | No subscriptions</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
@@ -162,7 +162,7 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-xl text-slate-400 leading-relaxed max-w-xl">
-              Track goals, time, skills, jobs, and more. Your data stays in your browser — 
+              Track goals, time, skills, jobs, and more. Your data stays in your browser - 
               you're never locked in. Try the demo first, sign up when you're ready.
             </p>
             
@@ -330,10 +330,10 @@ export default function LandingPage() {
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold">
               M
             </div>
-            <span className="font-semibold">MapMonet</span>
+            <span className="font-semibold">Productivity Hub</span>
           </div>
           <div className="text-sm text-slate-500">
-            © {new Date().getFullYear()} MapMonet • Built to stay free
+            Copyright {new Date().getFullYear()} Productivity Hub | Built to stay free
           </div>
           <div className="text-xs text-slate-600">
             Your data is securely stored in MongoDB
@@ -365,7 +365,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Try the Demo</h3>
-                    <p className="text-sm text-slate-400">Experience MapMonet with sample data</p>
+                    <p className="text-sm text-slate-400">Experience Productivity Hub with sample data</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setShowDemoModal(false)}>
@@ -430,3 +430,5 @@ export default function LandingPage() {
     </div>
   )
 }
+
+

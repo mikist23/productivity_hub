@@ -23,9 +23,9 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-6 border-b border-border/50">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-            M
+            P
           </div>
-          <span>MapMonet</span>
+          <span>Productivity Hub</span>
         </div>
       </div>
       <nav className="space-y-1 p-4">

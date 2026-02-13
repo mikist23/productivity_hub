@@ -7,6 +7,8 @@ import { defaultCloudDashboardPayload, type CloudDashboardPayload } from "@/lib/
 
 export type SkillStatus = "mastered" | "learning" | "inprogress"
 export type JobStatus = "applied" | "interview" | "offer" | "rejected"
+export type JobWorkMode = "remote" | "hybrid" | "onsite"
+export type JobEmploymentType = "full-time" | "part-time" | "contract" | "internship"
 export type GoalStatus = "todo" | "inprogress" | "completed"
 export type Priority = "high" | "medium" | "low"
 export type PinCategory = "personal" | "task" | "job" | "goal"
@@ -31,8 +33,22 @@ export interface JobApplication {
   company: string
   location: string
   date: string
+  appliedAt?: string
   status: JobStatus
   logo: string
+  category?: string
+  workMode?: JobWorkMode
+  employmentType?: JobEmploymentType
+  source?: string
+  sourceUrl?: string
+  salaryRange?: string
+  notes?: string
+  nextAction?: string
+  nextActionDate?: string
+}
+
+export type NewJobInput = Omit<JobApplication, "id" | "date"> & {
+  date?: string
 }
 
 export interface UserProfile {
@@ -169,7 +185,7 @@ export interface DashboardContextType {
   removeSkill: (categoryId: string, skillId: string) => void
   
   jobs: JobApplication[]
-  addJob: (job: Omit<JobApplication, "id" | "date">) => void
+  addJob: (job: NewJobInput) => void
   updateJobStatus: (id: string, status: JobStatus) => void
   removeJob: (id: string) => void
   
@@ -594,11 +610,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }))
   }
 
-  const addJob = (job: Omit<JobApplication, "id" | "date">) => {
+  const addJob = (job: NewJobInput) => {
+    const createdAt = job.appliedAt ?? new Date().toISOString()
     const newJob: JobApplication = {
       ...job,
       id: makeId(),
-      date: "Just now"
+      appliedAt: createdAt,
+      date: job.date ?? "Just now"
     }
     setJobs(prev => [newJob, ...prev])
     logActivity(`Applied to ${job.company} as ${job.role}`, "job")

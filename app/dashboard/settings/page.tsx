@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 type BackupV1 = {
   version: 1
   exportedAt: string
-  app: "MapMonet"
+  app: "MapMonet" | "Productivity Hub"
   data: {
     profile: unknown
     skills: unknown
@@ -82,7 +82,7 @@ export default function SettingsPage() {
   const buildLocalBackup = (): BackupV1 => ({
     version: 1,
     exportedAt: new Date().toISOString(),
-    app: "MapMonet",
+    app: "Productivity Hub",
     data: {
       profile: userProfile,
       skills,
@@ -157,7 +157,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `mapmonet-backup-${safeDate}.json`
+    a.download = `productivity-hub-backup-${safeDate}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -181,8 +181,9 @@ export default function SettingsPage() {
       const text = await file.text()
       const parsed = JSON.parse(text) as BackupV1
 
-      if (!parsed || parsed.app !== "MapMonet" || parsed.version !== 1 || !parsed.data) {
-        throw new Error("Invalid backup file (expected MapMonet v1 backup).")
+      const isSupportedApp = parsed?.app === "MapMonet" || parsed?.app === "Productivity Hub"
+      if (!parsed || !isSupportedApp || parsed.version !== 1 || !parsed.data) {
+        throw new Error("Invalid backup file (expected Productivity Hub v1 backup).")
       }
 
       await applyBackup(parsed)
@@ -214,7 +215,7 @@ export default function SettingsPage() {
   const clearAllData = () => {
     setCloudStatus(null)
     const ok = window.confirm(
-      "This will permanently delete all MapMonet cloud data for this account. Continue?"
+      "This will permanently delete all Productivity Hub cloud data for this account. Continue?"
     )
     if (!ok) return
 

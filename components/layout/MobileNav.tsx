@@ -21,9 +21,9 @@ export function MobileNav() {
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2 font-bold tracking-tight">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-              M
+              P
             </div>
-            <span>MapMonet</span>
+            <span>Productivity Hub</span>
           </div>
           <Button
             variant="ghost"

@@ -107,9 +107,9 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/25">
-                <span className="text-2xl font-bold">M</span>
+                <span className="text-2xl font-bold">P</span>
               </div>
-              <span className="text-3xl font-bold text-white">MapMonet</span>
+              <span className="text-3xl font-bold text-white">Productivity Hub</span>
             </div>
             
             {/* Tagline */}
@@ -145,7 +145,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
         {/* Bottom Badge */}
         <div className="absolute bottom-8 left-16 xl:left-24 flex items-center gap-2 text-sm text-slate-500">
           <Sparkles className="h-4 w-4" />
-          <span>Free forever • No subscriptions • Private by design</span>
+          <span>Free forever | No subscriptions | Private by design</span>
         </div>
       </div>
 
@@ -160,9 +160,9 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground">
-              <span className="text-xl font-bold">M</span>
+              <span className="text-xl font-bold">P</span>
             </div>
-            <span className="text-2xl font-bold">MapMonet</span>
+            <span className="text-2xl font-bold">Productivity Hub</span>
           </div>
 
           <Card className="border-border/50 shadow-2xl shadow-black/20 bg-card/50 backdrop-blur-sm">
@@ -356,3 +356,5 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
     </div>
   )
 }
+
+

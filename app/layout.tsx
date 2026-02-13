@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MapMonet",
+  title: "Productivity Hub",
   description: "A productivity dashboard with goals, focus tracking, skills, jobs, and MongoDB-backed cloud sync.",
 };
 
