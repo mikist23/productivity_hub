@@ -6,13 +6,13 @@ import { Plus, CheckCircle2, Circle, Clock, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { useDashboard, GoalStatus } from "@/app/dashboard/providers"
+import { useDashboard } from "@/app/dashboard/providers"
 import { EnhancedAddGoalModal } from "@/components/dashboard/EnhancedAddGoalModal"
 import { GoalDetailsModal } from "@/components/dashboard/GoalDetailsModal"
 import { AuthPromptModal, useAuthPrompt } from "@/components/dashboard/AuthPromptModal"
 
 export default function GoalsPage() {
-  const { goals, deleteGoal, updateGoalStatus, addGoal } = useDashboard()
+  const { goals, deleteGoal, addGoal } = useDashboard()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null)
   const { isOpen: isAuthPromptOpen, action: authAction, nextPath: authNextPath, promptAuth, closePrompt } = useAuthPrompt()
@@ -106,24 +106,9 @@ export default function GoalsPage() {
                                             {goal.category}
                                         </span>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                             {/* Quick Status Move */}
-                                             {col.id !== 'completed' && (
-                                                 <Button 
-                                                    variant="ghost" size="icon" className="h-6 w-6"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      updateGoalStatus(
-                                                        goal.id,
-                                                        col.id === "todo" ? "inprogress" : "completed"
-                                                      )
-                                                    }}
-                                                 >
-                                                     <CheckCircle2 className="h-3 w-3" />
-                                                 </Button>
-                                             )}
                                              <Button
-                                               variant="ghost"
-                                               size="icon"
+                                                variant="ghost"
+                                                size="icon"
                                                className="h-6 w-6 text-destructive hover:text-destructive"
                                                onClick={(e) => {
                                                  e.stopPropagation()
@@ -144,28 +129,6 @@ export default function GoalsPage() {
                                             goal.priority === "low" && "bg-blue-500",
                                         )} />
                                         <span className="text-xs text-muted-foreground capitalize">{goal.priority} Priority</span>
-                                    </div>
-
-                                    <div className="flex items-center gap-1 flex-wrap">
-                                      {([
-                                        { key: "todo", label: "To Do" },
-                                        { key: "inprogress", label: "In Progress" },
-                                        { key: "completed", label: "Completed" },
-                                      ] as Array<{ key: GoalStatus; label: string }>).map((option) => (
-                                        <Button
-                                          key={option.key}
-                                          type="button"
-                                          size="sm"
-                                          variant={goal.status === option.key ? "primary" : "outline"}
-                                          className="h-7 px-2 text-[11px]"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            updateGoalStatus(goal.id, option.key)
-                                          }}
-                                        >
-                                          {option.label}
-                                        </Button>
-                                      ))}
                                     </div>
 
                                     <div className="space-y-1 pt-1">

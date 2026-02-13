@@ -98,9 +98,9 @@ export function CircularTimer({
           className="absolute inset-0 rounded-full"
           animate={{
             boxShadow: [
-              "0 0 30px 10px rgba(139, 92, 246, 0.1)",
-              "0 0 50px 20px rgba(139, 92, 246, 0.2)",
-              "0 0 30px 10px rgba(139, 92, 246, 0.1)"
+              "0 0 30px 10px rgba(16, 185, 129, 0.1)",
+              "0 0 50px 20px rgba(16, 185, 129, 0.2)",
+              "0 0 30px 10px rgba(16, 185, 129, 0.1)"
             ]
           }}
           transition={{
@@ -128,9 +128,9 @@ export function CircularTimer({
               </>
             ) : (
               <>
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="50%" stopColor="#a78bfa" />
-                <stop offset="100%" stopColor="#c084fc" />
+                <stop offset="0%" stopColor="#0ea5e9" />
+                <stop offset="50%" stopColor="#06b6d4" />
+                <stop offset="100%" stopColor="#14b8a6" />
               </>
             )}
           </linearGradient>
@@ -241,7 +241,7 @@ export function CircularTimer({
           >
             <span className={cn(
               "text-xs font-semibold",
-              hasProgress ? "text-emerald-400" : "text-violet-400"
+              hasProgress ? "text-emerald-400" : "text-cyan-300"
             )}>
               {isComplete ? "✓ 100% complete" : `${Math.round(progress)}% complete`}
             </span>

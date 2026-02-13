@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Play, Pause, Square, CheckCircle2, Clock, Target, Flame, TrendingUp, Plus, ChevronDown, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { cn, formatMinutes } from "@/lib/utils"
 import { useDashboard, type Goal } from "@/app/dashboard/providers"
 import { 
@@ -88,7 +89,6 @@ export default function TimePage() {
     [goals]
   )
   
-  const selectedGoalKey = goalKey(selectedGoalId)
   const isRunning = timerState.runningGoalId === selectedGoalId
 
   const getElapsedSecondsForGoal = useCallback((goalId?: string) => {
@@ -150,6 +150,12 @@ export default function TimePage() {
     
     return selectedGoal.targetMinutes
   }, [selectedGoal, today])
+
+  const remainingMinutes = useMemo(() => {
+    if (!targetMinutes || targetMinutes <= 0) return null
+    const activeMinutes = Math.floor(currentElapsedSeconds / 60)
+    return Math.max(0, targetMinutes - (accumulatedMinutesForTarget + activeMinutes))
+  }, [accumulatedMinutesForTarget, currentElapsedSeconds, targetMinutes])
   
   // Auto-celebrate when goal reached
   useEffect(() => {
@@ -236,7 +242,7 @@ export default function TimePage() {
   
   return (
     <motion.div 
-      className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-4 md:p-6 lg:p-8"
+      className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(16,185,129,0.20)_0%,rgba(2,6,23,0)_45%),radial-gradient(circle_at_100%_0%,rgba(14,165,233,0.18)_0%,rgba(2,6,23,0)_45%),linear-gradient(150deg,#020617_0%,#0b1220_55%,#0f172a_100%)] p-4 md:p-6 lg:p-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -245,21 +251,21 @@ export default function TimePage() {
         {/* Header */}
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-slate-100 to-teal-200 bg-clip-text text-transparent">
               Time Tracking
             </h1>
-            <p className="text-slate-400 mt-1">Track your focus sessions and daily targets</p>
+            <p className="text-slate-300 mt-1">Track deep work by goal, pause and resume anytime, and complete targets with momentum.</p>
           </div>
           
           {/* Stats Row */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
               <Flame className="h-4 w-4 text-orange-400" />
               <span className="text-sm font-medium text-orange-300">{focusStreaks.currentStreak} day streak</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20">
-              <TrendingUp className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">{goalStreaks.completedThisWeek} goals this week</span>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/30">
+              <TrendingUp className="h-4 w-4 text-teal-300" />
+              <span className="text-sm font-medium text-teal-200">{goalStreaks.completedThisWeek} goals this week</span>
             </div>
           </div>
         </motion.div>
@@ -269,31 +275,31 @@ export default function TimePage() {
           {/* Left Column - Timer */}
           <motion.div variants={itemVariants} className="lg:col-span-7 space-y-6">
             {/* Timer Card */}
-            <Card className="border-none bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 overflow-hidden">
+            <Card className="border border-slate-700/60 bg-gradient-to-b from-slate-900/70 to-slate-900/50 backdrop-blur-xl overflow-hidden shadow-[0_20px_80px_-40px_rgba(16,185,129,0.45)]">
               <CardContent className="p-6 md:p-8">
                 {/* Goal Selector Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-violet-500/20">
-                      <Target className="h-5 w-5 text-violet-400" />
+                    <div className="p-2 rounded-xl bg-teal-500/20 border border-teal-500/30">
+                      <Target className="h-5 w-5 text-teal-300" />
                     </div>
                     <div>
                       <h2 className="text-lg font-semibold text-white">
                         {selectedGoal ? selectedGoal.title : "Select a Goal"}
                       </h2>
                       {selectedGoal && (
-                        <p className="text-sm text-slate-400">
-                          {selectedGoal.useDailyTargets ? "Daily target mode" : "Total target mode"}
-                        </p>
+                          <p className="text-sm text-slate-300">
+                            {selectedGoal.useDailyTargets ? "Daily target mode" : "Total target mode"}
+                          </p>
                       )}
                     </div>
                   </div>
                   
-                  <Button
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    onClick={() => setShowGoalSelector(!showGoalSelector)}
-                  >
+                    <Button
+                      variant="outline"
+                      className="border-slate-600 text-slate-200 hover:bg-slate-800"
+                      onClick={() => setShowGoalSelector(!showGoalSelector)}
+                    >
                     {showGoalSelector ? "Close" : "Change Goal"}
                     <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform", showGoalSelector && "rotate-180")} />
                   </Button>
@@ -308,7 +314,7 @@ export default function TimePage() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden mb-6"
                     >
-                      <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-3">
+                      <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-3">
                         <div className="text-sm text-slate-400 mb-2">Select a goal to track:</div>
                         <div className="grid gap-2 max-h-64 overflow-y-auto">
                           {activeGoals.map((goal) => (
@@ -317,9 +323,9 @@ export default function TimePage() {
                               onClick={() => selectGoal(goal.id)}
                               className={cn(
                                 "flex items-center gap-3 p-3 rounded-lg text-left transition-all",
-                                selectedGoalId === goal.id
-                                  ? "bg-violet-500/20 border border-violet-500/50"
-                                  : "bg-slate-700/30 border border-transparent hover:bg-slate-700/50"
+                                  selectedGoalId === goal.id
+                                    ? "bg-teal-500/15 border border-teal-500/50"
+                                    : "bg-slate-700/30 border border-transparent hover:bg-slate-700/50"
                               )}
                             >
                               <div className={cn(
@@ -332,7 +338,7 @@ export default function TimePage() {
                                 <div className="text-xs text-slate-400">{goal.category}</div>
                               </div>
                               {selectedGoalId === goal.id && (
-                                <CheckCircle2 className="h-4 w-4 text-violet-400" />
+                                <CheckCircle2 className="h-4 w-4 text-teal-300" />
                               )}
                             </button>
                           ))}
@@ -341,7 +347,37 @@ export default function TimePage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
+
+                <div className="mb-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 md:col-span-2">
+                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Session Label</div>
+                    <Input
+                      value={sessionLabel}
+                      onChange={(e) => setTimerSessionLabel(selectedGoalId, e.target.value)}
+                      placeholder={selectedGoal ? `Working on ${selectedGoal.title}` : "What are you working on?"}
+                      className="mt-2 border-slate-600 bg-slate-900/60 text-slate-100"
+                    />
+                  </div>
+                  <motion.div
+                    animate={isRunning ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+                    transition={{ duration: 2, repeat: isRunning ? Infinity : 0 }}
+                    className={cn(
+                      "rounded-xl border px-4 py-3",
+                      isRunning
+                        ? "border-emerald-500/50 bg-emerald-500/10"
+                        : "border-slate-700/60 bg-slate-800/40"
+                    )}
+                  >
+                    <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Session State</div>
+                    <div className={cn("mt-2 text-sm font-semibold", isRunning ? "text-emerald-300" : "text-slate-200")}>
+                      {isRunning ? "Running" : "Paused"}
+                    </div>
+                    {remainingMinutes != null && (
+                      <div className="mt-1 text-xs text-slate-300">{remainingMinutes} min remaining</div>
+                    )}
+                  </motion.div>
+                </div>
+                 
                 {/* Circular Timer */}
                 <div className="flex justify-center py-6">
                   <CircularTimer
@@ -362,7 +398,7 @@ export default function TimePage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-14 w-14 rounded-2xl border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-white"
+                      className="h-14 w-14 rounded-2xl border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                       onClick={handleResetTimer}
                       disabled={currentElapsedSeconds === 0}
                     >
@@ -377,8 +413,8 @@ export default function TimePage() {
                       className={cn(
                         "h-20 w-20 rounded-full shadow-2xl shadow-violet-500/30",
                         isRunning 
-                          ? "bg-amber-500 hover:bg-amber-600" 
-                          : "bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+                          ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30" 
+                          : "bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/30"
                       )}
                       onClick={toggleTimer}
                     >
@@ -395,7 +431,7 @@ export default function TimePage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-14 w-14 rounded-2xl border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20"
+                      className="h-14 w-14 rounded-2xl border-teal-400/50 text-teal-300 hover:bg-teal-500/20"
                       onClick={logSession}
                       disabled={currentElapsedSeconds === 0}
                     >
@@ -412,7 +448,7 @@ export default function TimePage() {
                       key={mins}
                       variant="outline"
                       size="sm"
-                      className="border-slate-600 text-slate-400 hover:bg-violet-500/20 hover:text-violet-300 hover:border-violet-500/50"
+                       className="border-slate-600 text-slate-300 hover:bg-teal-500/20 hover:text-teal-200 hover:border-teal-500/50"
                       onClick={() => quickAddTime(mins)}
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -437,10 +473,10 @@ export default function TimePage() {
           {/* Right Column - Goals & Calendar */}
           <motion.div variants={itemVariants} className="lg:col-span-5 space-y-6">
             {/* Today's Goals */}
-            <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+            <Card className="border border-slate-700/40 bg-slate-800/30 backdrop-blur-xl">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
-                  <Target className="h-5 w-5 text-violet-400" />
+                  <Target className="h-5 w-5 text-teal-300" />
                   Today's Goals
                 </CardTitle>
               </CardHeader>
@@ -487,8 +523,8 @@ export default function TimePage() {
             </Card>
             
             {/* Daily Target Calendar */}
-            {selectedGoal && (
-              <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+            {selectedGoal?.useDailyTargets && (
+              <Card className="border border-slate-700/40 bg-slate-800/30 backdrop-blur-xl">
                 <CardContent className="p-4">
                   <DailyTargetCalendar
                     dailyTargets={selectedGoal.dailyTargets || []}
@@ -500,10 +536,10 @@ export default function TimePage() {
             )}
             
             {/* Recent Sessions */}
-            <Card className="border-none bg-slate-800/30 backdrop-blur-xl border border-slate-700/30">
+            <Card className="border border-slate-700/40 bg-slate-800/30 backdrop-blur-xl">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg text-white">
-                  <History className="h-5 w-5 text-violet-400" />
+                  <History className="h-5 w-5 text-teal-300" />
                   Recent Sessions
                 </CardTitle>
               </CardHeader>
@@ -526,16 +562,16 @@ export default function TimePage() {
                           transition={{ delay: index * 0.05 }}
                           className="flex items-center gap-3 p-3 border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors"
                         >
-                          <div className="h-8 w-8 rounded-full bg-violet-500/20 flex items-center justify-center">
-                            <CheckCircle2 className="h-4 w-4 text-violet-400" />
-                          </div>
+                            <div className="h-8 w-8 rounded-full bg-teal-500/20 flex items-center justify-center">
+                              <CheckCircle2 className="h-4 w-4 text-teal-300" />
+                            </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-white truncate">
                               {session.label || "Focus session"}
                             </p>
-                            {sessionGoal && (
-                              <p className="text-xs text-violet-400">{sessionGoal.title}</p>
-                            )}
+                              {sessionGoal && (
+                                <p className="text-xs text-teal-300">{sessionGoal.title}</p>
+                              )}
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-mono font-medium text-white">

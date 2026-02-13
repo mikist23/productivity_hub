@@ -76,9 +76,9 @@ export function GoalCard({
         "relative p-4 rounded-xl border cursor-pointer transition-all duration-300",
         "bg-slate-800/50 backdrop-blur-sm",
         isSelected 
-          ? "border-violet-500/50 bg-violet-500/10 shadow-lg shadow-violet-500/10" 
+          ? "border-teal-500/50 bg-teal-500/10 shadow-lg shadow-teal-500/10" 
           : "border-slate-700/50 hover:border-slate-600",
-        isRunning && "ring-2 ring-violet-500/50 ring-offset-2 ring-offset-slate-900",
+        isRunning && "ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-900",
         className
       )}
       onClick={onSelect}
@@ -86,7 +86,7 @@ export function GoalCard({
       {/* Running indicator */}
       {isRunning && (
         <motion.div
-          className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-500"
+          className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400"
           animate={{
             scale: [1, 1.3, 1],
             opacity: [1, 0.7, 1]
@@ -124,8 +124,8 @@ export function GoalCard({
           className={cn(
             "h-8 w-8 rounded-full shrink-0",
             isRunning 
-              ? "bg-violet-500 text-white hover:bg-violet-600" 
-              : "bg-slate-700/50 text-slate-400 hover:bg-violet-500/20 hover:text-violet-400"
+              ? "bg-emerald-500 text-white hover:bg-emerald-600" 
+              : "bg-slate-700/50 text-slate-400 hover:bg-teal-500/20 hover:text-teal-200"
           )}
           onClick={(e) => {
             e.stopPropagation()
@@ -144,10 +144,10 @@ export function GoalCard({
             className={cn(
               "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
               isComplete
-                ? "bg-emerald-500"
-                : hasProgress
-                  ? "bg-gradient-to-r from-emerald-500 to-lime-400"
-                  : "bg-gradient-to-r from-violet-500 to-purple-500"
+                  ? "bg-emerald-500"
+                  : hasProgress
+                    ? "bg-gradient-to-r from-emerald-500 to-lime-400"
+                    : "bg-gradient-to-r from-cyan-500 to-teal-500"
             )}
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, progress)}%` }}
@@ -180,7 +180,7 @@ export function GoalCard({
             ) : (
               <span className={cn(
                 "font-medium",
-                progress >= 75 ? "text-amber-400" : "text-violet-400"
+                progress >= 75 ? "text-amber-300" : "text-cyan-300"
               )}>
                 {Math.round(progress)}%
               </span>

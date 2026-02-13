@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Clock, Plus, Trash2 } from "lucide-react"
+import { Clock, Plus, Trash2 } from "lucide-react"
 import { useDashboard, type Goal, type GoalRoadmapItem, type GoalStatus } from "@/app/dashboard/providers"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
@@ -51,7 +51,6 @@ export function GoalDetailsModal({
     toggleGoalRoadmapItem,
     removeGoalRoadmapItem,
     setGoalTargetMinutes,
-    updateGoalStatus,
     deleteGoal,
   } = useDashboard()
 
@@ -123,7 +122,7 @@ export function GoalDetailsModal({
       isOpen={isOpen}
       onClose={onClose}
       title={goal.title}
-      description={`${statusLabel(goal.status)} â€¢ ${goal.category} â€¢ ${goal.priority} priority`}
+      description={`${statusLabel(goal.status)} - ${goal.category} - ${goal.priority} priority`}
     >
       <div className="space-y-6">
         <div className="space-y-2">
@@ -139,7 +138,7 @@ export function GoalDetailsModal({
             <div className="rounded-xl border border-border bg-accent/20 p-3">
               <div className="text-xs text-muted-foreground">Roadmap</div>
               <div className="mt-1 font-semibold">
-                {roadmap.length === 0 ? "â€”" : `${doneCount}/${roadmap.length}`}
+                {roadmap.length === 0 ? "-" : `${doneCount}/${roadmap.length}`}
               </div>
               <div className="text-[11px] text-muted-foreground">
                 {roadmapProgress == null ? "Add steps to auto-calc." : `${roadmapProgress}% complete`}
@@ -153,7 +152,7 @@ export function GoalDetailsModal({
               </div>
               <div className="text-[11px] text-muted-foreground">
                 {goal.targetMinutes
-                  ? `Target ${minutesToText(goal.targetMinutes)} â€¢ ${timeProgress ?? 0}%`
+                  ? `Target ${minutesToText(goal.targetMinutes)} - ${timeProgress ?? 0}%`
                   : "Set a target to auto-complete."}
               </div>
             </div>
@@ -168,14 +167,6 @@ export function GoalDetailsModal({
                 Optional: when logged time reaches the target, the goal completes.
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => updateGoalStatus(goal.id, goal.status === "completed" ? "inprogress" : "completed")}
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              {goal.status === "completed" ? "Reopen" : "Mark complete"}
-            </Button>
           </div>
           <div className="flex gap-2">
             <Input
@@ -244,7 +235,7 @@ export function GoalDetailsModal({
             <Input
               value={newStep}
               onChange={(e) => setNewStep(e.target.value)}
-              placeholder="Add a roadmap stepâ€¦"
+              placeholder="Add a roadmap step..."
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault()
@@ -274,4 +265,3 @@ export function GoalDetailsModal({
     </Modal>
   )
 }
-

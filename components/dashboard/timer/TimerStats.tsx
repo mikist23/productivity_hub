@@ -40,8 +40,8 @@ export function TimerStats({
       icon: Clock,
       label: "Session",
       value: formatTime(sessionMinutes),
-      color: "text-violet-400",
-      bgColor: "bg-violet-500/10"
+      color: "text-cyan-300",
+      bgColor: "bg-cyan-500/10"
     },
     {
       icon: Target,
@@ -106,14 +106,14 @@ export function TimerStats({
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className={cn(
-                "p-1.5 rounded-lg",
-                isComplete ? "bg-emerald-500/20" : "bg-violet-500/10"
-              )}>
+                <div className={cn(
+                  "p-1.5 rounded-lg",
+                  isComplete ? "bg-emerald-500/20" : "bg-cyan-500/10"
+                )}>
                 {isComplete ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                 ) : (
-                  <Target className="h-4 w-4 text-violet-400" />
+                  <Target className="h-4 w-4 text-cyan-300" />
                 )}
               </div>
               <span className={cn(
@@ -125,7 +125,7 @@ export function TimerStats({
             </div>
             <span className={cn(
               "text-lg font-bold tabular-nums",
-              isComplete ? "text-emerald-400" : "text-violet-400"
+              isComplete ? "text-emerald-400" : "text-cyan-300"
             )}>
               {Math.round(progress)}%
             </span>
@@ -138,7 +138,7 @@ export function TimerStats({
                 "absolute inset-y-0 left-0 rounded-full",
                 isComplete 
                   ? "bg-gradient-to-r from-emerald-500 to-emerald-400" 
-                  : "bg-gradient-to-r from-violet-600 via-violet-500 to-purple-400"
+                  : "bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-400"
               )}
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, progress)}%` }}
@@ -168,10 +168,10 @@ export function TimerStats({
                 <motion.div
                   className={cn(
                     "w-2 h-2 rounded-full transition-all duration-300",
-                    progress >= milestone
-                      ? milestone === 100
-                        ? "bg-emerald-400 scale-125"
-                        : "bg-violet-400"
+                      progress >= milestone
+                        ? milestone === 100
+                          ? "bg-emerald-400 scale-125"
+                        : "bg-cyan-300"
                       : "bg-slate-700"
                   )}
                   animate={progress >= milestone ? { scale: [1, 1.3, 1] } : {}}
@@ -185,9 +185,9 @@ export function TimerStats({
       )}
       
       {/* Quick insights */}
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
-        <Zap className="h-4 w-4 text-violet-400" />
-        <span className="text-xs text-violet-200">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-teal-500/5 border border-teal-500/20">
+        <Zap className="h-4 w-4 text-teal-300" />
+        <span className="text-xs text-teal-100">
           {isComplete 
             ? "Great job! You've reached your target for today." 
             : progress >= 75 
