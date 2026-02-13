@@ -138,7 +138,7 @@ export default function DashboardPage() {
                 transition={{ delay: 0.3 }}
                 className="text-4xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">{userProfile.name || 'Alex'}</span>
+                Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">{userProfile.name || "..."}</span>
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}

@@ -465,17 +465,29 @@ function normalizeUserProfile(value: unknown): UserProfile {
   }
 }
 
+function mergeAuthIdentityIntoProfile(profile: UserProfile, user: { name: string; email: string } | null) {
+  if (!user) return profile
+
+  const profileName = profile.name.trim()
+  const profileEmail = profile.email.trim()
+  const nextName =
+    profileName.length > 0 && profileName.toLowerCase() !== "alex" ? profile.name : (user.name || profile.name)
+  const nextEmail = profileEmail.length > 0 ? profile.email : (user.email || profile.email)
+
+  return {
+    ...profile,
+    name: nextName,
+    email: nextEmail,
+  }
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const [userProfile, setUserProfile] = React.useState<UserProfile>(defaultProfile)
 
   React.useEffect(() => {
     if (!user) return
-    setUserProfile((prev) => {
-      const prevName = (prev?.name ?? "").trim()
-      if (prevName.length > 0 && prevName.toLowerCase() !== "alex") return prev
-      return { ...prev, name: user.name }
-    })
+    setUserProfile((prev) => mergeAuthIdentityIntoProfile(prev, user))
   }, [setUserProfile, user])
   const [skills, setSkills] = React.useState<SkillCategory[]>(emptySkillCategories)
   const [jobs, setJobs] = React.useState<JobApplication[]>(emptyJobs)
@@ -526,7 +538,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return
 
         cloudSyncRef.current.skipNextSave = true
-        setUserProfile(normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile))
+        const hydratedProfile = normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile)
+        setUserProfile(mergeAuthIdentityIntoProfile(hydratedProfile, user))
         setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
         setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
         setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
@@ -567,7 +580,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setTasks,
     setTimerState,
     setUserProfile,
-    user?.id,
+    user,
   ])
 
   React.useEffect(() => {

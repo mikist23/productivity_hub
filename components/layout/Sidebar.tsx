@@ -84,14 +84,7 @@ export function Sidebar() {
       
       {user && (
         <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-accent/50 border border-border/50">
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Productivity Score</h4>
-          <div className="flex items-end gap-2 text-2xl font-bold">
-            87 <span className="text-sm font-normal text-muted-foreground pb-1">/ 100</span>
-          </div>
-          <div className="mt-2 h-1.5 w-full bg-background rounded-full overflow-hidden">
-              <div className="h-full bg-primary w-[87%]" />
-          </div>
-          <div className="mt-4 pt-4 border-t border-border/60 space-y-1">
+          <div className="space-y-1">
             <div className="text-xs text-muted-foreground">Signed in as</div>
             <div className="text-sm font-semibold truncate">{user.name}</div>
             <div className="text-xs text-muted-foreground truncate">{user.email}</div>

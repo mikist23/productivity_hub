@@ -82,16 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: registerData?.error || fallbackError }
       }
 
-      const loginRes = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (loginRes?.error) {
-        return { ok: false, error: "Account created, but automatic sign in failed. Please sign in manually." }
-      }
-
       return { ok: true, recoveryCodes: registerData.recoveryCodes }
     } catch (error) {
       return { ok: false, error: normalizeError(error, "Unable to create account.") }
