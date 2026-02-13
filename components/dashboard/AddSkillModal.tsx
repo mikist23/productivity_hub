@@ -11,15 +11,28 @@ import { Button } from "@/components/ui/button"
 interface AddSkillModalProps {
   isOpen: boolean
   onClose: () => void
+  initialCategory?: string
+  initialName?: string
+  initialLevel?: string
+  initialStatus?: SkillStatus
+  initialProgress?: number
 }
 
-export function AddSkillModal({ isOpen, onClose }: AddSkillModalProps) {
+export function AddSkillModal({
+  isOpen,
+  onClose,
+  initialCategory,
+  initialName,
+  initialLevel,
+  initialStatus,
+  initialProgress,
+}: AddSkillModalProps) {
   const { addSkill, skills } = useDashboard()
-  const [category, setCategory] = useState("Language")
-  const [name, setName] = useState("")
-  const [level, setLevel] = useState("Beginner")
-  const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState<SkillStatus>("learning")
+  const [category, setCategory] = useState(initialCategory ?? "Language")
+  const [name, setName] = useState(initialName ?? "")
+  const [level, setLevel] = useState(initialLevel ?? "Beginner")
+  const [progress, setProgress] = useState(initialProgress ?? 0)
+  const [status, setStatus] = useState<SkillStatus>(initialStatus ?? "learning")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,8 +43,8 @@ export function AddSkillModal({ isOpen, onClose }: AddSkillModalProps) {
       status
     })
     // Reset form
-    setName("")
-    setProgress(0)
+    setName(initialName ?? "")
+    setProgress(initialProgress ?? 0)
     onClose()
   }
 
