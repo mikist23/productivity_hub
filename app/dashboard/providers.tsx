@@ -317,6 +317,21 @@ function clampProgress(progress: number) {
   return Math.max(0, Math.min(100, Math.round(progress)))
 }
 
+function normalizeCategory(value: string) {
+  return value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ")
+}
+
+function isSkillDevelopmentCategory(value: string) {
+  const normalized = normalizeCategory(value)
+  return normalized === "skill" || normalized === "skills" || normalized === "skill development" || normalized === "skills development"
+}
+
+function skillStatusFromProgress(progress: number): SkillStatus {
+  if (progress >= 100) return "mastered"
+  if (progress > 0) return "inprogress"
+  return "learning"
+}
+
 function goalRoadmapItems(goal: Goal) {
   return Array.isArray(goal.roadmap) ? goal.roadmap : []
 }
@@ -916,6 +931,49 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         },
         focusSessions
       )
+
+      if (isSkillDevelopmentCategory(newGoal.category)) {
+        setSkills(prev => {
+          const normalizedGoalTitle = newGoal.title.trim().toLowerCase()
+          const alreadyExists = prev.some(category =>
+            category.items.some(skill => skill.name.trim().toLowerCase() === normalizedGoalTitle)
+          )
+
+          if (alreadyExists || normalizedGoalTitle.length === 0) {
+            return prev
+          }
+
+          const nextSkills = [...prev]
+          const skillCategoryName = "Skill Development"
+          const skillCategoryIndex = nextSkills.findIndex(
+            category => normalizeCategory(category.category) === normalizeCategory(skillCategoryName)
+          )
+
+          const skillToAdd: SkillItem = {
+            id: makeId(),
+            name: newGoal.title,
+            level: "Beginner",
+            progress: clampProgress(newGoal.progress),
+            status: skillStatusFromProgress(newGoal.progress),
+          }
+
+          if (skillCategoryIndex >= 0) {
+            nextSkills[skillCategoryIndex] = {
+              ...nextSkills[skillCategoryIndex],
+              items: [...nextSkills[skillCategoryIndex].items, skillToAdd],
+            }
+          } else {
+            nextSkills.push({
+              id: makeId(),
+              category: skillCategoryName,
+              items: [skillToAdd],
+            })
+          }
+
+          return nextSkills
+        })
+      }
+
       setGoals(prev => [newGoal, ...prev])
       logActivity(`New Goal: ${newGoal.title}`, "goal")
   }
