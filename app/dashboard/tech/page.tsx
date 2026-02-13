@@ -362,22 +362,6 @@ export default function TechPage() {
         </div>
       )}
 
-      {showStories && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5" /> Evolving Signals
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <TrendList title="What is evolving" items={trendSummaryLabels.evolving} />
-            <TrendList title="What is fading" items={trendSummaryLabels.fading} />
-            <TrendList title="What is emerging" items={trendSummaryLabels.emerging} />
-            <TrendList title="What is in demand" items={trendSummaryLabels.demanded} />
-          </CardContent>
-        </Card>
-      )}
-
       {showOpportunities && (
         <Card>
           <CardHeader>
@@ -439,4 +423,3 @@ function TrendList({ title, items }: { title: string; items: string[] }) {
     </div>
   )
 }
-
