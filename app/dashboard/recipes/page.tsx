@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { BookOpen, Download, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { BookOpen, Download, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useDashboard, type Recipe } from "@/app/dashboard/providers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +22,77 @@ type MealDbMeal = {
   strYoutube: string | null
   [key: string]: unknown
 }
+
+const starterRecipes: Array<Omit<Recipe, "id" | "createdAt" | "updatedAt">> = [
+  {
+    title: "10-Minute Focus Oats",
+    description: "Fast breakfast before a deep-work block.",
+    category: "Workday Fuel",
+    tags: ["10-min", "brain-food", "budget", "morning"],
+    ingredients: [
+      { item: "Rolled oats", amount: "1 cup" },
+      { item: "Milk or water", amount: "1.5 cups" },
+      { item: "Banana", amount: "1" },
+      { item: "Peanut butter", amount: "1 tbsp" },
+    ],
+    steps: [
+      "Simmer oats with milk or water for 5 minutes.",
+      "Slice banana and stir in peanut butter.",
+      "Serve and start your first focus session.",
+    ],
+  },
+  {
+    title: "Batch Chicken Rice Bowls",
+    description: "Meal-prep lunch for high-output weekdays.",
+    category: "Meal Prep",
+    tags: ["batch-cook", "high-protein", "work-lunch"],
+    ingredients: [
+      { item: "Chicken breast", amount: "500g" },
+      { item: "Rice", amount: "2 cups" },
+      { item: "Frozen mixed vegetables", amount: "2 cups" },
+      { item: "Olive oil", amount: "1 tbsp" },
+    ],
+    steps: [
+      "Cook rice and set aside.",
+      "Pan-cook seasoned chicken until done.",
+      "Saute vegetables for 5 to 7 minutes.",
+      "Portion into 4 containers for the week.",
+    ],
+  },
+  {
+    title: "Post-Workout Egg Wrap",
+    description: "Quick protein meal to recover and get back to tasks.",
+    category: "Recovery",
+    tags: ["quick", "high-protein", "post-workout"],
+    ingredients: [
+      { item: "Eggs", amount: "3" },
+      { item: "Whole wheat tortilla", amount: "1" },
+      { item: "Spinach", amount: "1 handful" },
+      { item: "Cheese", amount: "2 tbsp" },
+    ],
+    steps: [
+      "Scramble eggs with spinach.",
+      "Warm tortilla and add egg mixture.",
+      "Top with cheese, fold, and serve.",
+    ],
+  },
+  {
+    title: "Noon Reset Hydration Smoothie",
+    description: "Midday energy reset without heavy food.",
+    category: "Energy Reset",
+    tags: ["hydration", "afternoon", "light"],
+    ingredients: [
+      { item: "Greek yogurt", amount: "0.5 cup" },
+      { item: "Frozen berries", amount: "1 cup" },
+      { item: "Water", amount: "0.75 cup" },
+      { item: "Chia seeds", amount: "1 tsp" },
+    ],
+    steps: [
+      "Blend all ingredients until smooth.",
+      "Drink 20 minutes before your next focus block.",
+    ],
+  },
+]
 
 function mealIngredients(meal: MealDbMeal) {
   const ingredients: NonNullable<Recipe["ingredients"]> = []
@@ -150,6 +221,15 @@ export default function RecipesPage() {
     })
   }
 
+  const addStarterPack = () => {
+    const existingTitles = new Set(recipes.map((r) => r.title.trim().toLowerCase()))
+    starterRecipes.forEach((recipe) => {
+      if (!existingTitles.has(recipe.title.trim().toLowerCase())) {
+        addRecipe(recipe)
+      }
+    })
+  }
+
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
@@ -166,9 +246,14 @@ export default function RecipesPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <BookOpen className="h-5 w-5" /> Your recipes
               </CardTitle>
-              <Button size="sm" onClick={() => setIsAddOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Add
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={addStarterPack}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Starter pack
+                </Button>
+                <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Add
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -195,7 +280,7 @@ export default function RecipesPage() {
           <CardContent>
             {filteredRecipes.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                No recipes yet. Add one or import below.
+                No recipes yet. Add one, import below, or load starter pack.
               </div>
             ) : (
               <div className="space-y-2 max-h-[520px] overflow-y-auto pr-2">

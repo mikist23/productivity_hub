@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Crosshair, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Crosshair, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useDashboard, type MapPin, type PinCategory } from "@/app/dashboard/providers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,39 @@ import { LeafletMap } from "@/components/map/LeafletMap"
 import { PinModal } from "@/components/map/PinModal"
 
 type LatLng = { lat: number; lng: number }
+
+function starterPins(center: LatLng): Array<Omit<MapPin, "id" | "createdAt" | "updatedAt">> {
+  return [
+    {
+      title: "Deep Work Zone",
+      note: "Quiet spot. Best for 90-minute focus sessions. Noise level low.",
+      category: "goal",
+      lat: center.lat + 0.01,
+      lng: center.lng + 0.01,
+    },
+    {
+      title: "Weekly Planning Cafe",
+      note: "Sunday planning, weekly review, and roadmap updates.",
+      category: "task",
+      lat: center.lat - 0.012,
+      lng: center.lng + 0.006,
+    },
+    {
+      title: "Networking Meetup Hub",
+      note: "Use for career events and relationship-building tasks.",
+      category: "job",
+      lat: center.lat + 0.008,
+      lng: center.lng - 0.012,
+    },
+    {
+      title: "Recharge Walk Route",
+      note: "15-minute walk between deep-work blocks.",
+      category: "personal",
+      lat: center.lat - 0.01,
+      lng: center.lng - 0.008,
+    },
+  ]
+}
 
 export default function MapPage() {
   const { mapPins, addMapPin, updateMapPin, deleteMapPin, mapView, setMapView } =
@@ -93,6 +126,15 @@ export default function MapPage() {
     if (selectedPinId === pinId) setSelectedPinId(null)
   }
 
+  const addStarterMapPins = () => {
+    const existingTitles = new Set(mapPins.map((pin) => pin.title.trim().toLowerCase()))
+    starterPins({ lat: mapView.lat, lng: mapView.lng }).forEach((pin) => {
+      if (!existingTitles.has(pin.title.trim().toLowerCase())) {
+        addMapPin(pin)
+      }
+    })
+  }
+
   const addModalInitial = useMemo(() => {
     const lat = pendingLocation?.lat ?? mapView.lat
     const lng = pendingLocation?.lng ?? mapView.lng
@@ -136,6 +178,14 @@ export default function MapPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-lg">Pins</CardTitle>
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addStarterMapPins}
+                  title="Add productivity-focused map pins"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" /> Starter pins
+                </Button>
                 <Button
                   variant={placing ? "secondary" : "outline"}
                   size="sm"

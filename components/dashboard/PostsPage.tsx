@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { FileText, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { FileText, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useDashboard, type Post, type PostKind } from "@/app/dashboard/providers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +13,56 @@ import { PostModal } from "@/components/dashboard/PostModal"
 function kindTitle(kind: PostKind) {
   return kind === "blog" ? "Blog" : "Stories"
 }
+
+type PostDraft = Omit<Post, "id" | "createdAt" | "updatedAt">
+
+const starterBlogPosts: PostDraft[] = [
+  {
+    kind: "blog",
+    title: "Weekly Planning System That Actually Sticks",
+    tags: ["planning", "systems", "weekly-review"],
+    content:
+      "Use this flow every Sunday:\n1) Review completed goals and tasks.\n2) Pick top 3 outcomes for the week.\n3) Time-block deep work first, meetings second.\n4) Define one fallback task per day for low-energy moments.\n\nAction block:\n- Schedule 30 minutes for weekly review today.\n- Write your top 3 outcomes.\n- Block the first 90-minute focus session for tomorrow.",
+  },
+  {
+    kind: "blog",
+    title: "Skill Growth Playbook: Learn, Build, Ship",
+    tags: ["skills", "career", "learning"],
+    content:
+      "A practical loop for skill development:\n- Learn: 45 minutes from one high-quality resource.\n- Build: apply it in a mini project the same day.\n- Ship: publish notes or code to close the loop.\n\nAction block:\n- Select one skill goal from your dashboard.\n- Define one mini project with a 7-day deadline.\n- Publish one short progress note in Stories.",
+  },
+  {
+    kind: "blog",
+    title: "Energy Management for Deep Work Days",
+    tags: ["focus", "health", "energy"],
+    content:
+      "Protect focus by managing energy, not just time.\n- Morning: light planning + hardest task first.\n- Midday: quick refuel and short walk.\n- Afternoon: admin tasks and communication.\n\nAction block:\n- Add one workday recipe for tomorrow.\n- Save one recharge location on the map.\n- Schedule two 90-minute focus blocks.",
+  },
+]
+
+const starterStories: PostDraft[] = [
+  {
+    kind: "story",
+    title: "Daily Win Template",
+    tags: ["win", "accountability"],
+    content:
+      "Today I completed:\n- [Task/Goal]\nWhat helped me succeed:\n- [Habit/Tool/Location]\nWhat I will do next:\n- [Next action for tomorrow]",
+  },
+  {
+    kind: "story",
+    title: "Challenge and Fix Template",
+    tags: ["lesson", "problem-solving"],
+    content:
+      "Challenge I faced:\n- [Describe blocker]\nHow I solved it:\n- [What changed]\nWhat I will repeat next time:\n- [New rule/process]",
+  },
+  {
+    kind: "story",
+    title: "Weekly Reflection Template",
+    tags: ["weekly", "reflection", "growth"],
+    content:
+      "Biggest progress this week:\n- [Result]\nOne thing that slowed me down:\n- [Issue]\nPriority for next week:\n- [Top objective]",
+  },
+]
 
 export function PostsPage({ kind }: { kind: PostKind }) {
   const { posts, addPost, updatePost, deletePost } = useDashboard()
@@ -66,6 +116,21 @@ export function PostsPage({ kind }: { kind: PostKind }) {
     if (activeId === id) setActiveId(null)
   }
 
+  const addStarterPack = () => {
+    const existingTitles = new Set(
+      posts
+        .filter((p) => p.kind === kind)
+        .map((p) => p.title.trim().toLowerCase())
+    )
+
+    const templates = kind === "blog" ? starterBlogPosts : starterStories
+    templates.forEach((template) => {
+      if (!existingTitles.has(template.title.trim().toLowerCase())) {
+        addPost(template)
+      }
+    })
+  }
+
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
@@ -84,9 +149,14 @@ export function PostsPage({ kind }: { kind: PostKind }) {
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5" /> {kindTitle(kind)}
               </CardTitle>
-              <Button size="sm" onClick={() => setIsAddOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> New
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={addStarterPack}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Templates
+                </Button>
+                <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> New
+                </Button>
+              </div>
             </div>
 
             <div className="relative">
@@ -103,7 +173,7 @@ export function PostsPage({ kind }: { kind: PostKind }) {
           <CardContent>
             {filtered.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                No {kindTitle(kind).toLowerCase()} yet.
+                No {kindTitle(kind).toLowerCase()} yet. Use templates to bootstrap content.
               </div>
             ) : (
               <div className="space-y-2 max-h-[520px] overflow-y-auto pr-2">
