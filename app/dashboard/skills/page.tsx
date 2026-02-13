@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils"
 import { useDashboard } from "@/app/dashboard/providers"
 import { AddSkillModal } from "@/components/dashboard/AddSkillModal"
 import { SkillDetailsModal } from "@/components/dashboard/SkillDetailsModal"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 import { recommendationDomains, skillRecommendationsCatalog } from "@/lib/skills/recommendations-catalog"
 import { rankSkillRecommendations, recommendationToSkillPrefill } from "@/lib/skills/recommendation-engine"
 import type { RecommendationSort, SkillTrackRecommendation, UserSkillSignal } from "@/lib/skills/types"
@@ -54,6 +56,7 @@ interface RecommendationApiResponse {
 
 export default function SkillsPage() {
   const { skills } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/skills")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeSkillRef, setActiveSkillRef] = useState<{ categoryId: string; skillId: string } | null>(null)
   const [modalPrefill, setModalPrefill] = useState<{
@@ -163,14 +166,18 @@ export default function SkillsPage() {
   }
 
   const handleOpenAddSkill = () => {
-    setModalPrefill({})
-    setIsModalOpen(true)
+    guard("add skills", () => {
+      setModalPrefill({})
+      setIsModalOpen(true)
+    })
   }
 
   const handleAddTrackToSkills = () => {
     if (!selectedTrack) return
-    setModalPrefill(recommendationToSkillPrefill(selectedTrack))
-    setIsModalOpen(true)
+    guard("add skills", () => {
+      setModalPrefill(recommendationToSkillPrefill(selectedTrack))
+      setIsModalOpen(true)
+    })
   }
 
   const openPrimaryRoadmap = () => {
@@ -554,6 +561,12 @@ export default function SkillsPage() {
           </CardContent>
         </Card>
       )}
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

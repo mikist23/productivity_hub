@@ -423,13 +423,15 @@ export default function DashboardPage() {
                           size="icon"
                           variant="ghost"
                           className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-400"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const ok = window.confirm(`Delete goal: "${goal.title}"?`)
-                            if (!ok) return
-                            deleteGoal(goal.id)
-                          }}
-                        >
+                                               onClick={(e) => {
+                                                 e.stopPropagation()
+                                                 const ok = window.confirm(`Delete goal: "${goal.title}"?`)
+                                                 if (!ok) return
+                                                 if (promptAuth("delete goals", "/dashboard")) {
+                                                   deleteGoal(goal.id)
+                                                 }
+                                               }}
+                                             >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

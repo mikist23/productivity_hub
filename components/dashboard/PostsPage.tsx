@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { PostModal } from "@/components/dashboard/PostModal"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 function kindTitle(kind: PostKind) {
   return kind === "blog" ? "Blog" : "Stories"
@@ -66,6 +68,7 @@ const starterStories: PostDraft[] = [
 
 export function PostsPage({ kind }: { kind: PostKind }) {
   const { posts, addPost, updatePost, deletePost } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction(kind === "blog" ? "/dashboard/blog" : "/dashboard/stories")
 
   const [query, setQuery] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -112,22 +115,26 @@ export function PostsPage({ kind }: { kind: PostKind }) {
     const p = posts.find((x) => x.id === id)
     const ok = window.confirm(`Delete ${kind}${p ? `: "${p.title}"` : ""}?`)
     if (!ok) return
-    deletePost(id)
-    if (activeId === id) setActiveId(null)
+    guard(`delete ${kind}`, () => {
+      deletePost(id)
+      if (activeId === id) setActiveId(null)
+    })
   }
 
   const addStarterPack = () => {
-    const existingTitles = new Set(
-      posts
-        .filter((p) => p.kind === kind)
-        .map((p) => p.title.trim().toLowerCase())
-    )
+    guard(`add ${kind}`, () => {
+      const existingTitles = new Set(
+        posts
+          .filter((p) => p.kind === kind)
+          .map((p) => p.title.trim().toLowerCase())
+      )
 
-    const templates = kind === "blog" ? starterBlogPosts : starterStories
-    templates.forEach((template) => {
-      if (!existingTitles.has(template.title.trim().toLowerCase())) {
-        addPost(template)
-      }
+      const templates = kind === "blog" ? starterBlogPosts : starterStories
+      templates.forEach((template) => {
+        if (!existingTitles.has(template.title.trim().toLowerCase())) {
+          addPost(template)
+        }
+      })
     })
   }
 
@@ -153,7 +160,7 @@ export function PostsPage({ kind }: { kind: PostKind }) {
                 <Button size="sm" variant="outline" onClick={addStarterPack}>
                   <Sparkles className="h-4 w-4 mr-2" /> Templates
                 </Button>
-                <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                <Button size="sm" onClick={() => guard(`add ${kind}`, () => setIsAddOpen(true))}>
                   <Plus className="h-4 w-4 mr-2" /> New
                 </Button>
               </div>
@@ -220,7 +227,7 @@ export function PostsPage({ kind }: { kind: PostKind }) {
                             className="h-8 w-8"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setEditingId(p.id)
+                              guard(`update ${kind}`, () => setEditingId(p.id))
                             }}
                             aria-label="Edit"
                           >
@@ -258,7 +265,7 @@ export function PostsPage({ kind }: { kind: PostKind }) {
                 Select an item to view it.
               </div>
             ) : (
-              <PostDetails post={active} onEdit={() => setEditingId(active.id)} />
+              <PostDetails post={active} onEdit={() => guard(`update ${kind}`, () => setEditingId(active.id))} />
             )}
           </CardContent>
         </Card>
@@ -271,7 +278,7 @@ export function PostsPage({ kind }: { kind: PostKind }) {
           mode="add"
           kind={kind}
           initial={addInitial}
-          onSave={(draft) => addPost(draft)}
+          onSave={(draft) => guard(`add ${kind}`, () => addPost(draft))}
         />
       )}
 
@@ -282,9 +289,15 @@ export function PostsPage({ kind }: { kind: PostKind }) {
           mode="edit"
           kind={kind}
           initial={editing}
-          onSave={(draft) => updatePost(editingId, draft)}
+          onSave={(draft) => guard(`update ${kind}`, () => updatePost(editingId, draft))}
         />
       )}
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

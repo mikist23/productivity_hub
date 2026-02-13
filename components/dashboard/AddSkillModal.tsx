@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface AddSkillModalProps {
   isOpen: boolean
@@ -28,6 +30,7 @@ export function AddSkillModal({
   initialProgress,
 }: AddSkillModalProps) {
   const { addSkill, skills } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/skills")
   const [category, setCategory] = useState(initialCategory ?? "Language")
   const [name, setName] = useState(initialName ?? "")
   const [level, setLevel] = useState(initialLevel ?? "Beginner")
@@ -36,16 +39,18 @@ export function AddSkillModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    addSkill(category, {
-      name,
-      level,
-      progress: Number(progress),
-      status
+    guard("add skills", () => {
+      addSkill(category, {
+        name,
+        level,
+        progress: Number(progress),
+        status
+      })
+      // Reset form
+      setName(initialName ?? "")
+      setProgress(initialProgress ?? 0)
+      onClose()
     })
-    // Reset form
-    setName(initialName ?? "")
-    setProgress(initialProgress ?? 0)
-    onClose()
   }
 
   // Get unique categories and allow adding new ones
@@ -131,6 +136,12 @@ export function AddSkillModal({
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
             <Button type="submit">Add Skill</Button>
         </div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </form>
     </Modal>
   )

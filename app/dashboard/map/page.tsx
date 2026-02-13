@@ -11,6 +11,8 @@ import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { LeafletMap } from "@/components/map/LeafletMap"
 import { PinModal } from "@/components/map/PinModal"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 type LatLng = { lat: number; lng: number }
 
@@ -50,6 +52,7 @@ function starterPins(center: LatLng): Array<Omit<MapPin, "id" | "createdAt" | "u
 export default function MapPage() {
   const { mapPins, addMapPin, updateMapPin, deleteMapPin, mapView, setMapView } =
     useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/map")
 
   const [query, setQuery] = useState("")
   const [filterCategory, setFilterCategory] = useState<PinCategory | "all">("all")
@@ -76,8 +79,10 @@ export default function MapPage() {
   }, [filterCategory, mapPins, query])
 
   const beginPlacing = () => {
-    setPlacing(true)
-    setSelectedPinId(null)
+    guard("add map pins", () => {
+      setPlacing(true)
+      setSelectedPinId(null)
+    })
   }
 
   const cancelPlacing = () => setPlacing(false)
@@ -88,8 +93,10 @@ export default function MapPage() {
   }, [])
 
   const startEditing = (pinId: string) => {
-    setEditingPinId(pinId)
-    setPendingLocation(null)
+    guard("edit map pins", () => {
+      setEditingPinId(pinId)
+      setPendingLocation(null)
+    })
   }
 
   const stopEditing = () => setEditingPinId(null)
@@ -122,16 +129,20 @@ export default function MapPage() {
     const pin = mapPins.find((p) => p.id === pinId)
     const ok = window.confirm(`Delete pin${pin ? `: "${pin.title}"` : ""}?`)
     if (!ok) return
-    deleteMapPin(pinId)
-    if (selectedPinId === pinId) setSelectedPinId(null)
+    guard("delete map pins", () => {
+      deleteMapPin(pinId)
+      if (selectedPinId === pinId) setSelectedPinId(null)
+    })
   }
 
   const addStarterMapPins = () => {
-    const existingTitles = new Set(mapPins.map((pin) => pin.title.trim().toLowerCase()))
-    starterPins({ lat: mapView.lat, lng: mapView.lng }).forEach((pin) => {
-      if (!existingTitles.has(pin.title.trim().toLowerCase())) {
-        addMapPin(pin)
-      }
+    guard("add map pins", () => {
+      const existingTitles = new Set(mapPins.map((pin) => pin.title.trim().toLowerCase()))
+      starterPins({ lat: mapView.lat, lng: mapView.lng }).forEach((pin) => {
+        if (!existingTitles.has(pin.title.trim().toLowerCase())) {
+          addMapPin(pin)
+        }
+      })
     })
   }
 
@@ -369,7 +380,7 @@ export default function MapPage() {
           onClose={() => setPendingLocation(null)}
           mode="add"
           initial={addModalInitial}
-          onSave={(draft) => addMapPin(draft)}
+          onSave={(draft) => guard("add map pins", () => addMapPin(draft))}
         />
       )}
 
@@ -379,9 +390,15 @@ export default function MapPage() {
           onClose={stopEditing}
           mode="edit"
           initial={editModalInitial}
-          onSave={(draft) => updateMapPin(editingPinId, draft)}
+          onSave={(draft) => guard("edit map pins", () => updateMapPin(editingPinId, draft))}
         />
       )}
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

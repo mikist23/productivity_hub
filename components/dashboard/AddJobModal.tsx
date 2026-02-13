@@ -14,6 +14,8 @@ import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { jobCategories, jobSourceProviders } from "@/lib/jobs/discovery-config"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface AddJobModalProps {
   isOpen: boolean
@@ -22,6 +24,7 @@ interface AddJobModalProps {
 
 export function AddJobModal({ isOpen, onClose }: AddJobModalProps) {
   const { addJob } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/jobs")
   const [role, setRole] = useState("")
   const [company, setCompany] = useState("")
   const [location, setLocation] = useState("")
@@ -57,39 +60,41 @@ export function AddJobModal({ isOpen, onClose }: AddJobModalProps) {
 
     const generatedLogo = company.trim().slice(0, 2).toUpperCase()
 
-    addJob({
-      role: role.trim(),
-      company: company.trim(),
-      location: location.trim(),
-      status,
-      logo: generatedLogo,
-      category: category.trim() || undefined,
-      workMode: workMode || undefined,
-      employmentType: employmentType || undefined,
-      source: source.trim() || undefined,
-      sourceUrl: trimmedSourceUrl || undefined,
-      salaryRange: salaryRange.trim() || undefined,
-      nextAction: nextAction.trim() || undefined,
-      nextActionDate: nextActionDate || undefined,
-      notes: notes.trim() || undefined,
-    })
+    guard("add job applications", () => {
+      addJob({
+        role: role.trim(),
+        company: company.trim(),
+        location: location.trim(),
+        status,
+        logo: generatedLogo,
+        category: category.trim() || undefined,
+        workMode: workMode || undefined,
+        employmentType: employmentType || undefined,
+        source: source.trim() || undefined,
+        sourceUrl: trimmedSourceUrl || undefined,
+        salaryRange: salaryRange.trim() || undefined,
+        nextAction: nextAction.trim() || undefined,
+        nextActionDate: nextActionDate || undefined,
+        notes: notes.trim() || undefined,
+      })
 
-    // Reset
-    setRole("")
-    setCompany("")
-    setLocation("")
-    setStatus("applied")
-    setCategory("")
-    setWorkMode("remote")
-    setEmploymentType("full-time")
-    setSource("")
-    setSourceUrl("")
-    setSalaryRange("")
-    setNextAction("")
-    setNextActionDate("")
-    setNotes("")
-    setFormError("")
-    onClose()
+      // Reset
+      setRole("")
+      setCompany("")
+      setLocation("")
+      setStatus("applied")
+      setCategory("")
+      setWorkMode("remote")
+      setEmploymentType("full-time")
+      setSource("")
+      setSourceUrl("")
+      setSalaryRange("")
+      setNextAction("")
+      setNextActionDate("")
+      setNotes("")
+      setFormError("")
+      onClose()
+    })
   }
 
   return (
@@ -267,6 +272,12 @@ export function AddJobModal({ isOpen, onClose }: AddJobModalProps) {
           </Button>
           <Button type="submit">Track Application</Button>
         </div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </form>
     </Modal>
   )

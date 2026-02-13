@@ -15,6 +15,8 @@ import {
   TimerStats,
   Celebration 
 } from "@/components/dashboard/timer"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 // Container animation variants
 const containerVariants = {
@@ -55,6 +57,7 @@ export default function TimePage() {
     getTimerElapsedSeconds,
     logTimerSession,
   } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/time")
 
   const [tick, setTick] = useState(() => Date.now())
   const [showGoalSelector, setShowGoalSelector] = useState(false)
@@ -194,43 +197,53 @@ export default function TimePage() {
   
   // Handlers
   const toggleTimer = () => {
-    if (isRunning) {
-      pauseTimer(selectedGoalId)
-      return
-    }
-    startTimer(selectedGoalId)
+    guard("track time sessions", () => {
+      if (isRunning) {
+        pauseTimer(selectedGoalId)
+        return
+      }
+      startTimer(selectedGoalId)
+    })
   }
   
   const handleResetTimer = () => {
-    resetTimer(selectedGoalId)
+    guard("track time sessions", () => resetTimer(selectedGoalId))
   }
   
   const logSession = () => {
     const time = currentElapsedSeconds
     if (time <= 0) return
 
-    logTimerSession(selectedGoalId)
-    setTimerSessionLabel(selectedGoalId, "")
+    guard("log focus sessions", () => {
+      logTimerSession(selectedGoalId)
+      setTimerSessionLabel(selectedGoalId, "")
+    })
   }
   
   const quickAddTime = (minutes: number) => {
-    if (selectedGoalId) {
-      addFocusSession(minutes, `Quick add ${minutes}min`, selectedGoalId)
-    } else {
-      addFocusSession(minutes, `Quick add ${minutes}min`)
-    }
+    guard("log focus sessions", () => {
+      if (selectedGoalId) {
+        addFocusSession(minutes, `Quick add ${minutes}min`, selectedGoalId)
+      } else {
+        addFocusSession(minutes, `Quick add ${minutes}min`)
+      }
+    })
   }
   
   const selectGoal = (goalId: string) => {
-    selectTimerGoal(goalId)
-    setShowGoalSelector(false)
+    guard("track time sessions", () => {
+      selectTimerGoal(goalId)
+      setShowGoalSelector(false)
+    })
   }
   
   const startGoalTimer = (goal: Goal) => {
-    selectTimerGoal(goal.id)
-    setShowGoalSelector(false)
-    setTimerSessionLabel(goal.id, timerState.drafts[goalKey(goal.id)]?.sessionLabel ?? goal.title)
-    startTimer(goal.id)
+    guard("track time sessions", () => {
+      selectTimerGoal(goal.id)
+      setShowGoalSelector(false)
+      setTimerSessionLabel(goal.id, timerState.drafts[goalKey(goal.id)]?.sessionLabel ?? goal.title)
+      startTimer(goal.id)
+    })
   }
 
   useEffect(() => {
@@ -242,21 +255,25 @@ export default function TimePage() {
   // Handle calendar target updates
   const handleUpdateTarget = (date: string, targetMinutes: number) => {
     if (selectedGoal) {
-      updateDailyTarget(selectedGoal.id, date, 0) // This updates the existing target structure
-      // We also need to update the target minutes
-      const existingTargets = selectedGoal.dailyTargets || []
-      const updatedTargets = existingTargets.map(dt => 
-        dt.date === date ? { ...dt, targetMinutes } : dt
-      )
-      setGoalDailyTargets(selectedGoal.id, updatedTargets.map(({ actualMinutes, isComplete, ...rest }) => rest))
+      guard("update daily targets", () => {
+        updateDailyTarget(selectedGoal.id, date, 0) // This updates the existing target structure
+        // We also need to update the target minutes
+        const existingTargets = selectedGoal.dailyTargets || []
+        const updatedTargets = existingTargets.map(dt =>
+          dt.date === date ? { ...dt, targetMinutes } : dt
+        )
+        setGoalDailyTargets(selectedGoal.id, updatedTargets.map(({ actualMinutes, isComplete, ...rest }) => rest))
+      })
     }
   }
   
   const handleAddTarget = (date: string, targetMinutes: number) => {
     if (selectedGoal) {
-      const newTarget = { date, targetMinutes }
-      const existingTargets = (selectedGoal.dailyTargets || []).map(({ actualMinutes, isComplete, ...rest }) => rest)
-      setGoalDailyTargets(selectedGoal.id, [...existingTargets, newTarget])
+      guard("update daily targets", () => {
+        const newTarget = { date, targetMinutes }
+        const existingTargets = (selectedGoal.dailyTargets || []).map(({ actualMinutes, isComplete, ...rest }) => rest)
+        setGoalDailyTargets(selectedGoal.id, [...existingTargets, newTarget])
+      })
     }
   }
   
@@ -373,7 +390,7 @@ export default function TimePage() {
                     <div className="text-xs uppercase tracking-[0.14em] text-slate-400">Session Label</div>
                     <Input
                       value={sessionLabel}
-                      onChange={(e) => setTimerSessionLabel(selectedGoalId, e.target.value)}
+                      onChange={(e) => guard("track time sessions", () => setTimerSessionLabel(selectedGoalId, e.target.value))}
                       placeholder={selectedGoal ? `Working on ${selectedGoal.title}` : "What are you working on?"}
                       className="mt-2 border-slate-600 bg-slate-900/60 text-slate-100"
                     />
@@ -615,8 +632,14 @@ export default function TimePage() {
           handleResetTimer()
         }}
         onContinue={() => {
-          startTimer(selectedGoalId)
+          guard("track time sessions", () => startTimer(selectedGoalId))
         }}
+      />
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
       />
     </motion.div>
   )

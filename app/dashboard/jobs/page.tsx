@@ -23,6 +23,8 @@ import {
   type JobWorkMode,
 } from "@/app/dashboard/providers"
 import { AddJobModal } from "@/components/dashboard/AddJobModal"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 import {
   buildJobSearchUrl,
   jobCategories,
@@ -51,6 +53,7 @@ function isTodayISODate(isoDate: string | undefined) {
 
 export default function JobsPage() {
   const { jobs, updateJobStatus, removeJob } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/jobs")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [applicationsQuery, setApplicationsQuery] = useState("")
@@ -161,7 +164,7 @@ export default function JobsPage() {
             Discover opportunities, narrow your search, and track your job pipeline.
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsModalOpen(true)}>
+        <Button size="sm" onClick={() => guard("add job applications", () => setIsModalOpen(true))}>
           <PlusIcon className="mr-2 h-4 w-4" /> Add New
         </Button>
       </motion.div>
@@ -386,7 +389,7 @@ export default function JobsPage() {
                   <Button variant="outline" size="sm" onClick={() => setApplicationsQuery("")}>
                     Clear Search
                   </Button>
-                  <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                  <Button size="sm" onClick={() => guard("add job applications", () => setIsModalOpen(true))}>
                     Add New Application
                   </Button>
                 </div>
@@ -447,7 +450,7 @@ export default function JobsPage() {
                       <Select
                         className="h-9 w-[148px]"
                         value={app.status}
-                        onChange={(e) => updateJobStatus(app.id, e.target.value as JobStatus)}
+                        onChange={(e) => guard("update job applications", () => updateJobStatus(app.id, e.target.value as JobStatus))}
                         aria-label="Update status"
                       >
                         <option value="applied">Applied</option>
@@ -462,7 +465,7 @@ export default function JobsPage() {
                         onClick={() => {
                           const ok = window.confirm(`Delete application: "${app.company}"?`)
                           if (!ok) return
-                          removeJob(app.id)
+                          guard("delete job applications", () => removeJob(app.id))
                         }}
                         aria-label="Delete application"
                       >
@@ -476,6 +479,12 @@ export default function JobsPage() {
           </div>
         </CardContent>
       </Card>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

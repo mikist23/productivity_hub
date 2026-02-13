@@ -114,7 +114,9 @@ export default function GoalsPage() {
                                                  e.stopPropagation()
                                                  const ok = window.confirm(`Delete goal: "${goal.title}"?`)
                                                  if (!ok) return
-                                                 deleteGoal(goal.id)
+                                                 if (promptAuth("delete goals", "/dashboard/goals")) {
+                                                   deleteGoal(goal.id)
+                                                 }
                                                }}
                                              >
                                                 <Trash2 className="h-3 w-3" />

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface SkillDetailsModalProps {
   isOpen: boolean
@@ -26,6 +28,7 @@ export function SkillDetailsModal({
   skill,
 }: SkillDetailsModalProps) {
   const { updateSkill, removeSkill } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/skills")
 
   const [name, setName] = useState(skill.name)
   const [level, setLevel] = useState(skill.level)
@@ -38,20 +41,24 @@ export function SkillDetailsModal({
     e.preventDefault()
     if (!canSave) return
 
-    updateSkill(categoryId, skill.id, {
-      name: name.trim(),
-      level,
-      status,
-      progress: Math.max(0, Math.min(100, Number(progress))),
+    guard("update skills", () => {
+      updateSkill(categoryId, skill.id, {
+        name: name.trim(),
+        level,
+        status,
+        progress: Math.max(0, Math.min(100, Number(progress))),
+      })
+      onClose()
     })
-    onClose()
   }
 
   const handleDelete = () => {
     const ok = window.confirm(`Remove skill: "${skill.name}"?`)
     if (!ok) return
-    removeSkill(categoryId, skill.id)
-    onClose()
+    guard("remove skills", () => {
+      removeSkill(categoryId, skill.id)
+      onClose()
+    })
   }
 
   return (
@@ -136,6 +143,12 @@ export function SkillDetailsModal({
           </div>
         </div>
       </form>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </Modal>
   )
 }

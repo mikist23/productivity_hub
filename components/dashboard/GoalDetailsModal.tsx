@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 function minutesToText(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0m"
@@ -53,6 +55,7 @@ export function GoalDetailsModal({
     setGoalTargetMinutes,
     deleteGoal,
   } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/goals")
 
   const goal = useMemo(() => goals.find((g) => g.id === goalId) ?? null, [goalId, goals])
 
@@ -82,28 +85,32 @@ export function GoalDetailsModal({
     if (!goal) return
     const raw = targetHours.trim()
     if (!raw) {
-      setGoalTargetMinutes(goal.id, null)
+      guard("update goals", () => setGoalTargetMinutes(goal.id, null))
       return
     }
     const hours = Number(raw)
     if (!Number.isFinite(hours) || hours <= 0) return
-    setGoalTargetMinutes(goal.id, Math.round(hours * 60))
+    guard("update goals", () => setGoalTargetMinutes(goal.id, Math.round(hours * 60)))
   }
 
   const handleAddStep = () => {
     if (!goal) return
     const trimmed = newStep.trim()
     if (!trimmed) return
-    addGoalRoadmapItem(goal.id, trimmed)
-    setNewStep("")
+    guard("update goals", () => {
+      addGoalRoadmapItem(goal.id, trimmed)
+      setNewStep("")
+    })
   }
 
   const handleDeleteGoal = () => {
     if (!goal) return
     const ok = window.confirm(`Delete goal: "${goal.title}"?`)
     if (!ok) return
-    deleteGoal(goal.id)
-    onClose()
+    guard("delete goals", () => {
+      deleteGoal(goal.id)
+      onClose()
+    })
   }
 
   if (!goal) {
@@ -207,7 +214,7 @@ export function GoalDetailsModal({
                       type="checkbox"
                       className="mt-1"
                       checked={item.done}
-                      onChange={() => toggleGoalRoadmapItem(goal.id, item.id)}
+                      onChange={() => guard("update goals", () => toggleGoalRoadmapItem(goal.id, item.id))}
                       aria-label={`Mark ${item.title} done`}
                     />
                     <div className="flex-1 min-w-0">
@@ -219,7 +226,7 @@ export function GoalDetailsModal({
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => removeGoalRoadmapItem(goal.id, item.id)}
+                      onClick={() => guard("update goals", () => removeGoalRoadmapItem(goal.id, item.id))}
                       aria-label="Delete step"
                       title="Delete step"
                     >
@@ -262,6 +269,12 @@ export function GoalDetailsModal({
           </Button>
         </div>
       </div>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </Modal>
   )
 }

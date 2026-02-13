@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 type RecipeDraft = Omit<Recipe, "id" | "createdAt" | "updatedAt">
 
@@ -44,6 +46,7 @@ interface RecipeModalProps {
 }
 
 export function RecipeModal({ isOpen, onClose, mode, initial, onSave }: RecipeModalProps) {
+  const { guard, authPrompt } = useGuardedAction("/dashboard/recipes")
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description ?? "")
   const [category, setCategory] = useState(initial.category || "General")
@@ -75,8 +78,10 @@ export function RecipeModal({ isOpen, onClose, mode, initial, onSave }: RecipeMo
       imageUrl: imageUrl.trim() || undefined,
     }
 
-    onSave(draft)
-    onClose()
+    guard(mode === "add" ? "add recipes" : "update recipes", () => {
+      onSave(draft)
+      onClose()
+    })
   }
 
   return (
@@ -182,8 +187,13 @@ export function RecipeModal({ isOpen, onClose, mode, initial, onSave }: RecipeMo
             {mode === "add" ? "Save Recipe" : "Save Changes"}
           </Button>
         </div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </form>
     </Modal>
   )
 }
-

@@ -30,6 +30,8 @@ import { LegacySelect } from "@/components/ui/legacy-select"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { DailyTarget } from "@/app/dashboard/providers"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface EnhancedAddGoalModalProps {
   isOpen: boolean
@@ -98,6 +100,7 @@ const repeatPatterns = [
 ]
 
 export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAddGoalModalProps) {
+  const { guard, authPrompt } = useGuardedAction("/dashboard/goals")
   const [selectedTemplate, setSelectedTemplate] = useState<typeof goalTemplates[0] | null>(null)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
@@ -232,8 +235,10 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
       createdAt: new Date().toISOString()
     }
 
-    onAddGoal(newGoal)
-    handleClose()
+    guard("add goals", () => {
+      onAddGoal(newGoal)
+      handleClose()
+    })
   }
 
   const handleClose = () => {
@@ -705,6 +710,12 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
             </div>
           </div>
         </motion.div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </motion.div>
     </AnimatePresence>
   )

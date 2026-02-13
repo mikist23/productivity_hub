@@ -5,6 +5,8 @@ import { useDashboard } from "@/app/dashboard/providers"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
 import { Clock } from "lucide-react"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface FocusModalProps {
   isOpen: boolean
@@ -14,19 +16,24 @@ interface FocusModalProps {
 export function FocusModal({ isOpen, onClose }: FocusModalProps) {
   const { addFocusSession, todayFocusMinutes } = useDashboard()
   const [minutes, setMinutes] = useState<string>("")
+  const { guard, authPrompt } = useGuardedAction("/dashboard")
 
   const handleLog = (vals: number) => {
-    addFocusSession(vals)
-    onClose()
+    guard("log focus sessions", () => {
+      addFocusSession(vals)
+      onClose()
+    })
   }
 
   const handleCustomLog = (e: React.FormEvent) => {
       e.preventDefault()
       const val = parseInt(minutes)
       if (val && !isNaN(val)) {
-          addFocusSession(val)
-          setMinutes("")
-          onClose()
+          guard("log focus sessions", () => {
+            addFocusSession(val)
+            setMinutes("")
+            onClose()
+          })
       }
   }
 
@@ -76,6 +83,12 @@ export function FocusModal({ isOpen, onClose }: FocusModalProps) {
              </div>
              <Button type="submit">Log</Button>
         </form>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </div>
     </Modal>
   )

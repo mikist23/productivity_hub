@@ -5,6 +5,8 @@ import { motion } from "framer-motion"
 import { Download, Upload, Trash2, CloudUpload } from "lucide-react"
 import { useDashboard } from "@/app/dashboard/providers"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -31,6 +33,7 @@ type BackupV1 = {
 export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const { user } = useAuth()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/settings")
 
   const {
     userProfile,
@@ -277,13 +280,13 @@ export default function SettingsPage() {
             Export and import backup files, or migrate in-memory data to MongoDB cloud storage.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={() => void downloadBackup()}>
+            <Button onClick={() => guard("download backup data", () => void downloadBackup())}>
               <Download className="h-4 w-4 mr-2" /> Download Backup
             </Button>
-            <Button variant="outline" onClick={handlePickFile} disabled={importing}>
+            <Button variant="outline" onClick={() => guard("import backup data", handlePickFile)} disabled={importing}>
               <Upload className="h-4 w-4 mr-2" /> Import Backup
             </Button>
-            <Button variant="outline" onClick={() => void migrateLocalDataToCloud()} disabled={migrating}>
+            <Button variant="outline" onClick={() => guard("migrate data to MongoDB", () => void migrateLocalDataToCloud())} disabled={migrating}>
               <CloudUpload className="h-4 w-4 mr-2" /> {migrating ? "Migrating..." : "Migrate To MongoDB"}
             </Button>
             <input
@@ -323,12 +326,18 @@ export default function SettingsPage() {
           <Button
             variant="outline"
             className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-            onClick={clearAllData}
+            onClick={() => guard("clear all data", clearAllData)}
           >
             <Trash2 className="h-4 w-4 mr-2" /> Clear All Data
           </Button>
         </CardContent>
       </Card>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

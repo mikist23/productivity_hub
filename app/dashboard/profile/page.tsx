@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select } from "@/components/ui/select"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 type ReportPeriod = "week" | "month"
 
@@ -32,6 +34,7 @@ export default function ProfilePage() {
     goalStreaks,
     productivityInsights,
   } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/profile")
 
   const [formData, setFormData] = useState(userProfile)
   const [isSaved, setIsSaved] = useState(false)
@@ -101,9 +104,11 @@ export default function ProfilePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateUserProfile(formData)
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 2000)
+    guard("save profile changes", () => {
+      updateUserProfile(formData)
+      setIsSaved(true)
+      setTimeout(() => setIsSaved(false), 2000)
+    })
   }
 
   const refreshReport = () => setReportGeneratedAt(new Date())
@@ -407,6 +412,12 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { RecipeModal } from "@/components/dashboard/RecipeModal"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 type MealDbMeal = {
   idMeal: string
@@ -115,6 +117,7 @@ function splitSteps(instructions: string | null) {
 
 export default function RecipesPage() {
   const { recipes, addRecipe, updateRecipe, deleteRecipe } = useDashboard()
+  const { guard, authPrompt } = useGuardedAction("/dashboard/recipes")
 
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string>("all")
@@ -148,7 +151,7 @@ export default function RecipesPage() {
     [activeRecipeId, recipes]
   )
 
-  const openEdit = (id: string) => setEditingId(id)
+  const openEdit = (id: string) => guard("update recipes", () => setEditingId(id))
   const closeEdit = () => setEditingId(null)
 
   const editingRecipe = useMemo(() => {
@@ -185,8 +188,10 @@ export default function RecipesPage() {
     const recipe = recipes.find((r) => r.id === id)
     const ok = window.confirm(`Delete recipe${recipe ? `: "${recipe.title}"` : ""}?`)
     if (!ok) return
-    deleteRecipe(id)
-    if (activeRecipeId === id) setActiveRecipeId(null)
+    guard("delete recipes", () => {
+      deleteRecipe(id)
+      if (activeRecipeId === id) setActiveRecipeId(null)
+    })
   }
 
   const searchOnline = async () => {
@@ -209,24 +214,28 @@ export default function RecipesPage() {
   }
 
   const saveMeal = (meal: MealDbMeal) => {
-    addRecipe({
-      title: meal.strMeal,
-      description: meal.strArea ? `Cuisine: ${meal.strArea}` : undefined,
-      category: meal.strCategory ?? "Imported",
-      tags: [meal.strArea, meal.strCategory].filter(Boolean) as string[],
-      ingredients: mealIngredients(meal),
-      steps: splitSteps(meal.strInstructions),
-      sourceUrl: meal.strSource ?? meal.strYoutube ?? undefined,
-      imageUrl: meal.strMealThumb ?? undefined,
+    guard("add recipes", () => {
+      addRecipe({
+        title: meal.strMeal,
+        description: meal.strArea ? `Cuisine: ${meal.strArea}` : undefined,
+        category: meal.strCategory ?? "Imported",
+        tags: [meal.strArea, meal.strCategory].filter(Boolean) as string[],
+        ingredients: mealIngredients(meal),
+        steps: splitSteps(meal.strInstructions),
+        sourceUrl: meal.strSource ?? meal.strYoutube ?? undefined,
+        imageUrl: meal.strMealThumb ?? undefined,
+      })
     })
   }
 
   const addStarterPack = () => {
-    const existingTitles = new Set(recipes.map((r) => r.title.trim().toLowerCase()))
-    starterRecipes.forEach((recipe) => {
-      if (!existingTitles.has(recipe.title.trim().toLowerCase())) {
-        addRecipe(recipe)
-      }
+    guard("add recipes", () => {
+      const existingTitles = new Set(recipes.map((r) => r.title.trim().toLowerCase()))
+      starterRecipes.forEach((recipe) => {
+        if (!existingTitles.has(recipe.title.trim().toLowerCase())) {
+          addRecipe(recipe)
+        }
+      })
     })
   }
 
@@ -250,7 +259,7 @@ export default function RecipesPage() {
                 <Button size="sm" variant="outline" onClick={addStarterPack}>
                   <Sparkles className="h-4 w-4 mr-2" /> Starter pack
                 </Button>
-                <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                <Button size="sm" onClick={() => guard("add recipes", () => setIsAddOpen(true))}>
                   <Plus className="h-4 w-4 mr-2" /> Add
                 </Button>
               </div>
@@ -516,7 +525,7 @@ export default function RecipesPage() {
           onClose={() => setIsAddOpen(false)}
           mode="add"
           initial={addInitial}
-          onSave={(draft) => addRecipe(draft)}
+          onSave={(draft) => guard("add recipes", () => addRecipe(draft))}
         />
       )}
 
@@ -526,9 +535,15 @@ export default function RecipesPage() {
           onClose={closeEdit}
           mode="edit"
           initial={editingRecipe}
-          onSave={(draft) => updateRecipe(editingId, draft)}
+          onSave={(draft) => guard("update recipes", () => updateRecipe(editingId, draft))}
         />
       )}
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </div>
   )
 }

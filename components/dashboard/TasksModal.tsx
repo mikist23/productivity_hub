@@ -6,6 +6,8 @@ import { Modal } from "@/components/ui/modal"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Check, Plus, Trash2 } from "lucide-react"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 interface TasksModalProps {
   isOpen: boolean
@@ -15,12 +17,15 @@ interface TasksModalProps {
 export function TasksModal({ isOpen, onClose }: TasksModalProps) {
   const { tasks, addTask, toggleTask, deleteTask } = useDashboard()
   const [newTask, setNewTask] = useState("")
+  const { guard, authPrompt } = useGuardedAction("/dashboard")
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTask.trim()) return
-    addTask(newTask)
-    setNewTask("")
+    guard("add tasks", () => {
+      addTask(newTask)
+      setNewTask("")
+    })
   }
 
   const pendingTasks = tasks.filter(t => !t.completed)
@@ -65,7 +70,7 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
                                     variant="outline" 
                                     size="icon" 
                                     className="h-8 w-8 rounded-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
-                                    onClick={() => toggleTask(task.id)}
+                                    onClick={() => guard("update tasks", () => toggleTask(task.id))}
                                 >
                                     <Check className="h-3 w-3" />
                                 </Button>
@@ -73,7 +78,7 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => deleteTask(task.id)}
+                                    onClick={() => guard("delete tasks", () => deleteTask(task.id))}
                                 >
                                     <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -95,7 +100,7 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 rounded-full bg-primary/10 text-primary"
-                                    onClick={() => toggleTask(task.id)}
+                                    onClick={() => guard("update tasks", () => toggleTask(task.id))}
                                 >
                                     <Check className="h-3 w-3" />
                                 </Button>
@@ -103,7 +108,7 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => deleteTask(task.id)}
+                                    onClick={() => guard("delete tasks", () => deleteTask(task.id))}
                                 >
                                     <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -114,6 +119,12 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
             )}
         </div>
       </div>
+      <AuthPromptModal
+        isOpen={authPrompt.isOpen}
+        onClose={authPrompt.closePrompt}
+        action={authPrompt.action}
+        nextPath={authPrompt.nextPath}
+      />
     </Modal>
   )
 }

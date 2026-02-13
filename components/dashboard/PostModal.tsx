@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
+import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
 
 type PostDraft = Omit<Post, "id" | "createdAt" | "updatedAt">
 
@@ -20,6 +22,7 @@ interface PostModalProps {
 }
 
 export function PostModal({ isOpen, onClose, mode, kind, initial, onSave }: PostModalProps) {
+  const { guard, authPrompt } = useGuardedAction(kind === "blog" ? "/dashboard/blog" : "/dashboard/stories")
   const [title, setTitle] = useState(initial.title)
   const [tags, setTags] = useState((initial.tags ?? []).join(", "))
   const [content, setContent] = useState(initial.content ?? "")
@@ -30,16 +33,18 @@ export function PostModal({ isOpen, onClose, mode, kind, initial, onSave }: Post
     e.preventDefault()
     if (!canSave) return
 
-    onSave({
-      kind,
-      title: title.trim(),
-      content,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
+    guard(mode === "add" ? `add ${kind}` : `update ${kind}`, () => {
+      onSave({
+        kind,
+        title: title.trim(),
+        content,
+        tags: tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      })
+      onClose()
     })
-    onClose()
   }
 
   return (
@@ -91,8 +96,13 @@ export function PostModal({ isOpen, onClose, mode, kind, initial, onSave }: Post
             {mode === "add" ? "Save" : "Save changes"}
           </Button>
         </div>
+        <AuthPromptModal
+          isOpen={authPrompt.isOpen}
+          onClose={authPrompt.closePrompt}
+          action={authPrompt.action}
+          nextPath={authPrompt.nextPath}
+        />
       </form>
     </Modal>
   )
 }
-
