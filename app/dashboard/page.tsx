@@ -34,6 +34,33 @@ import { EnhancedAddGoalModal } from "@/components/dashboard/EnhancedAddGoalModa
 import { AuthPromptModal, useAuthPrompt } from "@/components/dashboard/AuthPromptModal"
 import { cn } from "@/lib/utils"
 
+function getHourForGreeting(timezone?: string) {
+  if (!timezone || timezone.trim().length === 0) {
+    return new Date().getHours()
+  }
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: timezone.trim(),
+    }).formatToParts(new Date())
+    const hourPart = parts.find((part) => part.type === "hour")?.value
+    const parsedHour = Number(hourPart)
+    if (Number.isFinite(parsedHour)) return parsedHour
+  } catch {
+    // Fall back to local hour when timezone is invalid.
+  }
+
+  return new Date().getHours()
+}
+
+function getGreetingByHour(hour: number) {
+  if (hour >= 5 && hour < 12) return "Good Morning"
+  if (hour >= 12 && hour < 17) return "Good Afternoon"
+  return "Good Evening"
+}
+
 export default function DashboardPage() {
   const {
     userProfile,
@@ -91,6 +118,8 @@ export default function DashboardPage() {
 
   // Get active goals with daily targets
   const activeGoals = goals.filter(g => g.status !== "completed").slice(0, 4)
+  const greetingHour = getHourForGreeting(userProfile.timezone)
+  const greeting = getGreetingByHour(greetingHour)
 
   return (
     <div className="min-h-screen space-y-8 pb-8">
@@ -138,7 +167,7 @@ export default function DashboardPage() {
                 transition={{ delay: 0.3 }}
                 className="text-4xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">{userProfile.name || "..."}</span>
+                {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">{userProfile.name || "..."}</span>
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}
@@ -203,10 +232,13 @@ export default function DashboardPage() {
                 </div>
                 <Button
                   size="lg"
-                  className="shrink-0 rounded-xl h-14 w-14 bg-gradient-to-br from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0"
+                  className="shrink-0 rounded-xl h-14 px-5 bg-gradient-to-br from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-white"
                   onClick={() => setIsTasksOpen(true)}
+                  aria-label="Add task"
+                  title="Add task"
                 >
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5 mr-2" />
+                  Add
                 </Button>
               </div>
             </div>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
 
   return (
     <motion.aside
@@ -81,16 +81,6 @@ export function Sidebar() {
           <div className="absolute inset-0 bg-destructive/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </nav>
-      
-      {user && (
-        <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-accent/50 border border-border/50">
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">Signed in as</div>
-            <div className="text-sm font-semibold truncate">{user.name}</div>
-            <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-          </div>
-        </div>
-      )}
     </motion.aside>
   )
 }
