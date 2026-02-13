@@ -32,6 +32,18 @@ export interface Goal {
   category?: string
 }
 
+function toDateKey(input?: string, fallback?: string): string | null {
+  const parse = (value?: string) => {
+    if (!value || value.trim().length === 0) return null
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return format(date, 'yyyy-MM-dd')
+  }
+
+  return parse(input) ?? parse(fallback)
+}
+
 /**
  * Calculate focus streaks based on focus sessions
  */
@@ -49,7 +61,8 @@ export function calculateFocusStreaks(sessions: FocusSession[]): Omit<StreakData
   // Group sessions by date
   const sessionsByDate = new Map<string, FocusSession[]>()
   sessions.forEach(session => {
-    const date = session.date
+    const date = toDateKey(session.date, session.timestamp)
+    if (!date) return
     if (!sessionsByDate.has(date)) {
       sessionsByDate.set(date, [])
     }
@@ -140,10 +153,12 @@ export function getStreakHistory(sessions: FocusSession[]): { date: string; hasA
   const sessionsByDate = new Map<string, FocusSession[]>()
   
   sessions.forEach(session => {
-    if (!sessionsByDate.has(session.date)) {
-      sessionsByDate.set(session.date, [])
+    const normalizedDate = toDateKey(session.date, session.timestamp)
+    if (!normalizedDate) return
+    if (!sessionsByDate.has(normalizedDate)) {
+      sessionsByDate.set(normalizedDate, [])
     }
-    sessionsByDate.get(session.date)!.push(session)
+    sessionsByDate.get(normalizedDate)!.push(session)
   })
 
   for (let i = 29; i >= 0; i--) {
