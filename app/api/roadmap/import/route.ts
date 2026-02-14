@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import {
   detectRoadmapSource,
+  parseFreeCodeCamp,
   parseRoadmapSh,
   parseW3Schools,
   type RoadmapImportSource,
@@ -9,17 +10,20 @@ import {
 
 const importSchema = z.object({
   url: z.string().url(),
-  source: z.enum(["auto", "w3schools", "roadmapsh"]).optional().default("auto"),
+  source: z.enum(["auto", "w3schools", "roadmapsh", "freecodecamp"]).optional().default("auto"),
 })
 
 const MAX_HTML_BYTES = 1_200_000
 const FETCH_TIMEOUT_MS = 10_000
 
 function resolveSource(url: URL, source: "auto" | RoadmapImportSource) {
-  if (source !== "auto") {
-    return source
+  const detected = detectRoadmapSource(url)
+  if (source === "auto") {
+    return detected
   }
-  return detectRoadmapSource(url)
+  if (!detected) return null
+  if (detected !== source) return detected
+  return source
 }
 
 async function fetchHtml(url: string) {
@@ -69,16 +73,21 @@ export async function POST(req: NextRequest) {
   const source = resolveSource(parsedUrl, parsed.data.source)
   if (!source) {
     return NextResponse.json(
-      { error: "Unsupported source. Please use W3Schools or roadmap.sh URLs." },
+      { error: "Unsupported source. Please use W3Schools, roadmap.sh, or freeCodeCamp URLs." },
       { status: 400 }
     )
   }
 
   try {
     const html = await fetchHtml(parsedUrl.toString())
-    const result = source === "w3schools"
-      ? parseW3Schools(html, parsedUrl.toString())
-      : parseRoadmapSh(html, parsedUrl.toString())
+    let result
+    if (source === "w3schools") {
+      result = parseW3Schools(html, parsedUrl.toString())
+    } else if (source === "roadmapsh") {
+      result = parseRoadmapSh(html, parsedUrl.toString())
+    } else {
+      result = parseFreeCodeCamp(html, parsedUrl.toString())
+    }
 
     if (result.steps.length === 0) {
       return NextResponse.json(

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { detectRoadmapSource, parseRoadmapSh, parseW3Schools } from "../lib/roadmap-import/parsers"
+import { detectRoadmapSource, parseFreeCodeCamp, parseRoadmapSh, parseW3Schools } from "../lib/roadmap-import/parsers"
 
 describe("roadmap import parsers", () => {
   it("detects supported source hosts", () => {
     expect(detectRoadmapSource(new URL("https://w3schools.io/dart-hello-world/"))).toBe("w3schools")
     expect(detectRoadmapSource(new URL("https://roadmap.sh/backend"))).toBe("roadmapsh")
+    expect(detectRoadmapSource(new URL("https://www.freecodecamp.org/news/learn-react/"))).toBe("freecodecamp")
     expect(detectRoadmapSource(new URL("https://example.com/course"))).toBeNull()
   })
 
@@ -51,5 +52,32 @@ describe("roadmap import parsers", () => {
     expect(result.source).toBe("roadmapsh")
     expect(result.steps.length).toBeGreaterThanOrEqual(4)
     expect(result.steps.some((step) => step.title === "REST APIs")).toBe(true)
+  })
+
+  it("parses freeCodeCamp article headings and lists", () => {
+    const html = `
+      <html>
+        <head><title>How to Learn JavaScript</title></head>
+        <body>
+          <article class="post-body">
+            <h1>Learn JavaScript</h1>
+            <h2>Start with Variables</h2>
+            <ul>
+              <li>Understand let and const</li>
+              <li>Practice conditions and loops</li>
+            </ul>
+          </article>
+          <footer>
+            <a href="/donate">Donate</a>
+          </footer>
+        </body>
+      </html>
+    `
+
+    const result = parseFreeCodeCamp(html, "https://www.freecodecamp.org/news/learn-javascript")
+
+    expect(result.source).toBe("freecodecamp")
+    expect(result.steps.some((step) => step.title === "Learn JavaScript")).toBe(true)
+    expect(result.steps.some((step) => step.title === "Understand let and const")).toBe(true)
   })
 })

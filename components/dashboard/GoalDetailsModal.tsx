@@ -16,6 +16,8 @@ type ImportStep = {
   selected: boolean
 }
 
+type ImportSourceOption = "auto" | "w3schools" | "roadmapsh" | "freecodecamp"
+
 function minutesToText(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0m"
   const hrs = Math.floor(minutes / 60)
@@ -82,6 +84,7 @@ export function GoalDetailsModal({
   const [editingTitle, setEditingTitle] = useState("")
 
   const [importUrl, setImportUrl] = useState("")
+  const [selectedImportSource, setSelectedImportSource] = useState<ImportSourceOption>("auto")
   const [importSource, setImportSource] = useState<string | null>(null)
   const [importSteps, setImportSteps] = useState<ImportStep[]>([])
   const [importError, setImportError] = useState("")
@@ -91,6 +94,12 @@ export function GoalDetailsModal({
     setNewStep("")
     setEditingItemId(null)
     setEditingTitle("")
+    setImportUrl("")
+    setSelectedImportSource("auto")
+    setImportSource(null)
+    setImportSteps([])
+    setImportError("")
+    setIsImporting(false)
     if (!goal?.targetMinutes) {
       setTargetHours("")
       return
@@ -141,7 +150,7 @@ export function GoalDetailsModal({
     setEditingTitle("")
   }
 
-  const fetchImportedSteps = async () => {
+  const fetchImportedSteps = async (sourceOverride?: ImportSourceOption) => {
     const trimmed = importUrl.trim()
     if (!trimmed) return
 
@@ -149,10 +158,11 @@ export function GoalDetailsModal({
     setIsImporting(true)
 
     try {
+      const sourceToUse = sourceOverride ?? selectedImportSource
       const response = await fetch("/api/roadmap/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed, source: "auto" }),
+        body: JSON.stringify({ url: trimmed, source: sourceToUse }),
       })
 
       const payload = await response.json().catch(() => null) as
@@ -177,6 +187,13 @@ export function GoalDetailsModal({
     }
   }
 
+  const selectImportSource = (source: ImportSourceOption) => {
+    setSelectedImportSource(source)
+    if (importUrl.trim().length > 0 && !isImporting) {
+      void fetchImportedSteps(source)
+    }
+  }
+
   const toggleImportedStep = (index: number) => {
     setImportSteps((prev) => prev.map((step, idx) => idx === index ? { ...step, selected: !step.selected } : step))
   }
@@ -190,15 +207,16 @@ export function GoalDetailsModal({
     const selected = importSteps.filter((step) => step.selected)
     if (selected.length === 0) return
 
-    guard("update goals", () => {
-      for (const step of selected) {
-        addGoalRoadmapItem(goal.id, step.title)
-      }
-      setImportSteps([])
-      setImportUrl("")
-      setImportSource(null)
-      setImportError("")
-    })
+      guard("update goals", () => {
+        for (const step of selected) {
+          addGoalRoadmapItem(goal.id, step.title)
+        }
+        setImportSteps([])
+        setImportUrl("")
+        setSelectedImportSource("auto")
+        setImportSource(null)
+        setImportError("")
+      })
   }
 
   const handleDeleteGoal = () => {
@@ -302,13 +320,36 @@ export function GoalDetailsModal({
 
         <div className="space-y-3 rounded-xl border border-border p-3">
           <div className="text-sm font-semibold">Import from URL</div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedImportSource === "w3schools" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => selectImportSource("w3schools")}
+            >
+              Load from W3Schools
+            </Button>
+            <Button
+              variant={selectedImportSource === "roadmapsh" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => selectImportSource("roadmapsh")}
+            >
+              Load from roadmap.sh
+            </Button>
+            <Button
+              variant={selectedImportSource === "freecodecamp" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => selectImportSource("freecodecamp")}
+            >
+              Load from freeCodeCamp
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Input
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
-              placeholder="https://w3schools.io/... or https://roadmap.sh/..."
+              placeholder="https://w3schools.io/... or https://roadmap.sh/... or https://freecodecamp.org/..."
             />
-            <Button variant="secondary" onClick={fetchImportedSteps} disabled={isImporting || importUrl.trim().length === 0}>
+            <Button variant="secondary" onClick={() => fetchImportedSteps()} disabled={isImporting || importUrl.trim().length === 0}>
               {isImporting ? "Loading..." : "Fetch"}
             </Button>
           </div>

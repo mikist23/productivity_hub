@@ -1,4 +1,4 @@
-export type RoadmapImportSource = "w3schools" | "roadmapsh"
+export type RoadmapImportSource = "w3schools" | "roadmapsh" | "freecodecamp"
 
 export interface ImportedRoadmapStep {
   externalId?: string
@@ -57,6 +57,7 @@ function extractTitle(html: string, fallback: string) {
 export function detectRoadmapSource(url: URL): RoadmapImportSource | null {
   const host = url.hostname.toLowerCase()
   if (host === "roadmap.sh" || host.endsWith(".roadmap.sh")) return "roadmapsh"
+  if (host === "freecodecamp.org" || host.endsWith(".freecodecamp.org")) return "freecodecamp"
 
   if (
     host === "w3schools.com" ||
@@ -70,30 +71,50 @@ export function detectRoadmapSource(url: URL): RoadmapImportSource | null {
   return null
 }
 
-export function parseW3Schools(html: string, pageUrl: string) {
-  const sidebarSteps: ImportedRoadmapStep[] = []
+function anchorStepsFromHtml(html: string, options?: { preferSidebar?: boolean }) {
+  const raw: ImportedRoadmapStep[] = []
+  const patterns = options?.preferSidebar
+    ? [
+        /<(nav|aside|div)[^>]*(class|id)=["'][^"']*(sidenav|sidebar|leftmenu|menu)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi,
+      ]
+    : []
+
+  const sourceBlocks: string[] = []
+  for (const pattern of patterns) {
+    let blockMatch: RegExpExecArray | null
+    while ((blockMatch = pattern.exec(html)) != null) {
+      sourceBlocks.push(blockMatch[4] || "")
+    }
+  }
+  if (sourceBlocks.length === 0) sourceBlocks.push(html)
 
   const anchorRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
-  let anchorMatch: RegExpExecArray | null
-
-  while ((anchorMatch = anchorRegex.exec(html)) != null) {
-    const href = anchorMatch[1] || ""
-    const text = stripTags(anchorMatch[2] || "")
-
-    if (!text) continue
-    if (/next|prev|home|contact|privacy|terms/i.test(text)) continue
-
-    if (/dart\s*-|tutorial|hello world|variables|operators|class|collections|package/i.test(text)) {
-      sidebarSteps.push({ externalId: href, title: text })
+  for (const block of sourceBlocks) {
+    let anchorMatch: RegExpExecArray | null
+    while ((anchorMatch = anchorRegex.exec(block)) != null) {
+      const href = anchorMatch[1] || ""
+      const text = stripTags(anchorMatch[2] || "")
+      if (!text) continue
+      if (
+        /next|prev|home|contact|privacy|terms|cookie|donate|forum|sign in|log in|register|curriculum/i.test(text)
+      ) {
+        continue
+      }
+      raw.push({ externalId: href, title: text })
     }
   }
 
-  const steps = cleanAndDedupe(sidebarSteps)
+  return cleanAndDedupe(raw)
+}
+
+export function parseW3Schools(html: string, pageUrl: string) {
+  const preferred = anchorStepsFromHtml(html, { preferSidebar: true })
+  const fallback = preferred.length > 0 ? preferred : anchorStepsFromHtml(html)
 
   return {
     source: "w3schools" as const,
     title: extractTitle(html, pageUrl),
-    steps,
+    steps: fallback,
   }
 }
 
@@ -120,6 +141,46 @@ export function parseRoadmapSh(html: string, pageUrl: string) {
 
   return {
     source: "roadmapsh" as const,
+    title: extractTitle(html, pageUrl),
+    steps: cleanAndDedupe(steps),
+  }
+}
+
+export function parseFreeCodeCamp(html: string, pageUrl: string) {
+  const steps: ImportedRoadmapStep[] = []
+
+  const contentBlocks: string[] = []
+  const blockRegex =
+    /<(article|main|section|div)[^>]*(class|id)=["'][^"']*(article|tutorial|content|post-body|markdown)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi
+
+  let blockMatch: RegExpExecArray | null
+  while ((blockMatch = blockRegex.exec(html)) != null) {
+    contentBlocks.push(blockMatch[4] || "")
+  }
+  if (contentBlocks.length === 0) contentBlocks.push(html)
+
+  for (const block of contentBlocks) {
+    const headingRegex = /<(h1|h2|h3|h4)[^>]*>([\s\S]*?)<\/\1>/gi
+    let headingMatch: RegExpExecArray | null
+    while ((headingMatch = headingRegex.exec(block)) != null) {
+      const title = stripTags(headingMatch[2] || "")
+      if (!title) continue
+      if (/privacy|cookie|forum|donate|curriculum|sign in/i.test(title)) continue
+      steps.push({ title })
+    }
+
+    const listRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi
+    let listMatch: RegExpExecArray | null
+    while ((listMatch = listRegex.exec(block)) != null) {
+      const text = stripTags(listMatch[1] || "")
+      if (!text || text.length < 3) continue
+      if (/privacy|cookie|forum|donate|curriculum|sign in/i.test(text)) continue
+      steps.push({ title: text })
+    }
+  }
+
+  return {
+    source: "freecodecamp" as const,
     title: extractTitle(html, pageUrl),
     steps: cleanAndDedupe(steps),
   }
