@@ -110,6 +110,11 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
   const [roadmapSteps, setRoadmapSteps] = useState<{id: string; title: string}[]>([{id: '1', title: ''}])
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showRoadmap, setShowRoadmap] = useState(false)
+  const [importUrl, setImportUrl] = useState("")
+  const [importSource, setImportSource] = useState<string | null>(null)
+  const [importError, setImportError] = useState("")
+  const [isImporting, setIsImporting] = useState(false)
+  const [importedSteps, setImportedSteps] = useState<Array<{ externalId?: string; title: string; selected: boolean }>>([])
   
   // Daily targets state
   const [useDailyTargets, setUseDailyTargets] = useState(false)
@@ -210,6 +215,73 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     setDailyTargets(updated)
   }
 
+  const fetchImportedSteps = async () => {
+    const trimmed = importUrl.trim()
+    if (!trimmed) return
+
+    setImportError("")
+    setIsImporting(true)
+
+    try {
+      const response = await fetch("/api/roadmap/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: trimmed, source: "auto" }),
+      })
+
+      const payload = await response.json().catch(() => null) as
+        | { source?: string; steps?: Array<{ title: string; externalId?: string }>; error?: string }
+        | null
+
+      if (!response.ok || !payload?.steps) {
+        setImportError(payload?.error || "Unable to import steps from this URL")
+        setImportedSteps([])
+        setImportSource(null)
+        return
+      }
+
+      setImportSource(payload.source ?? null)
+      setImportedSteps(payload.steps.map((step) => ({ ...step, selected: true })))
+    } catch {
+      setImportError("Unable to import steps from this URL")
+      setImportedSteps([])
+      setImportSource(null)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  const toggleImportedStep = (index: number) => {
+    setImportedSteps(prev => prev.map((step, idx) => idx === index ? { ...step, selected: !step.selected } : step))
+  }
+
+  const toggleAllImportedSteps = (checked: boolean) => {
+    setImportedSteps(prev => prev.map((step) => ({ ...step, selected: checked })))
+  }
+
+  const addImportedStepsToRoadmap = () => {
+    const selectedSteps = importedSteps
+      .filter((step) => step.selected)
+      .map((step) => step.title.trim())
+      .filter(Boolean)
+
+    if (selectedSteps.length === 0) return
+
+    const existingTitles = new Set(
+      roadmapSteps.map((step) => step.title.trim().toLowerCase()).filter(Boolean)
+    )
+
+    const additions = selectedSteps.filter((title) => !existingTitles.has(title.toLowerCase()))
+    if (additions.length === 0) return
+
+    setRoadmapSteps((prev) => [
+      ...prev,
+      ...additions.map((title, idx) => ({ id: `${Date.now()}-${idx}`, title })),
+    ])
+  }
+
   const handleSubmit = () => {
     if (!title.trim()) return
 
@@ -257,6 +329,11 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     setCustomDays([])
     setDefaultDailyMinutes(60)
     setShowDailyTargets(false)
+    setImportUrl("")
+    setImportSource(null)
+    setImportError("")
+    setImportedSteps([])
+    setIsImporting(false)
     onClose()
   }
 
@@ -266,6 +343,7 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
   }
 
   const hasRoadmapSteps = roadmapSteps.some(step => step.title.trim())
+  const allImportedSelected = importedSteps.length > 0 && importedSteps.every((step) => step.selected)
 
   if (!isOpen) return null
 
@@ -616,6 +694,64 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
                 </div>
               </div>
             )}
+
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div className="text-sm font-semibold">Import roadmap steps from URL</div>
+              <div className="flex gap-2">
+                <Input
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  placeholder="https://w3schools.io/... or https://roadmap.sh/..."
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={fetchImportedSteps}
+                  disabled={isImporting || importUrl.trim().length === 0}
+                >
+                  {isImporting ? "Loading..." : "Fetch"}
+                </Button>
+              </div>
+              {importSource && (
+                <div className="text-xs text-muted-foreground">Detected source: {importSource}</div>
+              )}
+              {importError && (
+                <div className="text-xs text-destructive">{importError}</div>
+              )}
+              {importedSteps.length > 0 && (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={allImportedSelected}
+                      onChange={(e) => toggleAllImportedSteps(e.target.checked)}
+                    />
+                    Select all
+                  </label>
+                  <div className="max-h-36 overflow-y-auto rounded border border-border p-2 space-y-1">
+                    {importedSteps.map((step, index) => (
+                      <label key={`${step.externalId ?? step.title}-${index}`} className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={step.selected}
+                          onChange={() => toggleImportedStep(index)}
+                        />
+                        <span>{step.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addImportedStepsToRoadmap}
+                    disabled={importedSteps.every((step) => !step.selected)}
+                  >
+                    Add selected to roadmap
+                  </Button>
+                </div>
+              )}
+            </div>
 
             {/* Roadmap Section */}
             <div className="border rounded-xl overflow-hidden">

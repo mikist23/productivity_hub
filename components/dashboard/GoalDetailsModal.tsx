@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Clock, Plus, Trash2 } from "lucide-react"
+import { Clock, Pencil, Plus, Save, Trash2, X } from "lucide-react"
 import { useDashboard, type Goal, type GoalRoadmapItem, type GoalStatus } from "@/app/dashboard/providers"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,12 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
 import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
+
+type ImportStep = {
+  externalId?: string
+  title: string
+  selected: boolean
+}
 
 function minutesToText(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0m"
@@ -50,6 +56,7 @@ export function GoalDetailsModal({
     goals,
     focusSessions,
     addGoalRoadmapItem,
+    updateGoalRoadmapItem,
     toggleGoalRoadmapItem,
     removeGoalRoadmapItem,
     setGoalTargetMinutes,
@@ -71,9 +78,19 @@ export function GoalDetailsModal({
 
   const [newStep, setNewStep] = useState("")
   const [targetHours, setTargetHours] = useState("")
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
+
+  const [importUrl, setImportUrl] = useState("")
+  const [importSource, setImportSource] = useState<string | null>(null)
+  const [importSteps, setImportSteps] = useState<ImportStep[]>([])
+  const [importError, setImportError] = useState("")
+  const [isImporting, setIsImporting] = useState(false)
 
   useEffect(() => {
     setNewStep("")
+    setEditingItemId(null)
+    setEditingTitle("")
     if (!goal?.targetMinutes) {
       setTargetHours("")
       return
@@ -103,6 +120,87 @@ export function GoalDetailsModal({
     })
   }
 
+  const beginEdit = (item: GoalRoadmapItem) => {
+    setEditingItemId(item.id)
+    setEditingTitle(item.title)
+  }
+
+  const saveEdit = () => {
+    if (!goal || !editingItemId) return
+    const trimmed = editingTitle.trim()
+    if (!trimmed) return
+    guard("update goals", () => {
+      updateGoalRoadmapItem(goal.id, editingItemId, trimmed)
+      setEditingItemId(null)
+      setEditingTitle("")
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingItemId(null)
+    setEditingTitle("")
+  }
+
+  const fetchImportedSteps = async () => {
+    const trimmed = importUrl.trim()
+    if (!trimmed) return
+
+    setImportError("")
+    setIsImporting(true)
+
+    try {
+      const response = await fetch("/api/roadmap/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed, source: "auto" }),
+      })
+
+      const payload = await response.json().catch(() => null) as
+        | { source?: string; steps?: Array<{ title: string; externalId?: string }>; error?: string }
+        | null
+
+      if (!response.ok || !payload?.steps) {
+        setImportError(payload?.error || "Unable to import steps from this URL")
+        setImportSteps([])
+        setImportSource(null)
+        return
+      }
+
+      setImportSource(payload.source ?? null)
+      setImportSteps(payload.steps.map((step) => ({ ...step, selected: true })))
+    } catch {
+      setImportError("Unable to import steps from this URL")
+      setImportSteps([])
+      setImportSource(null)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  const toggleImportedStep = (index: number) => {
+    setImportSteps((prev) => prev.map((step, idx) => idx === index ? { ...step, selected: !step.selected } : step))
+  }
+
+  const toggleAllImportedSteps = (checked: boolean) => {
+    setImportSteps((prev) => prev.map((step) => ({ ...step, selected: checked })))
+  }
+
+  const addImportedSteps = () => {
+    if (!goal) return
+    const selected = importSteps.filter((step) => step.selected)
+    if (selected.length === 0) return
+
+    guard("update goals", () => {
+      for (const step of selected) {
+        addGoalRoadmapItem(goal.id, step.title)
+      }
+      setImportSteps([])
+      setImportUrl("")
+      setImportSource(null)
+      setImportError("")
+    })
+  }
+
   const handleDeleteGoal = () => {
     if (!goal) return
     const ok = window.confirm(`Delete goal: "${goal.title}"?`)
@@ -123,6 +221,7 @@ export function GoalDetailsModal({
 
   const roadmap = goal.roadmap ?? []
   const doneCount = roadmap.filter((s) => s.done).length
+  const allSelected = importSteps.length > 0 && importSteps.every((step) => step.selected)
 
   return (
     <Modal
@@ -167,12 +266,10 @@ export function GoalDetailsModal({
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-end justify-between gap-3">
-            <div className="space-y-1">
-              <div className="text-sm font-semibold">Target hours</div>
-              <div className="text-xs text-muted-foreground">
-                Optional: when logged time reaches the target, the goal completes.
-              </div>
+          <div className="space-y-1">
+            <div className="text-sm font-semibold">Target hours</div>
+            <div className="text-xs text-muted-foreground">
+              Optional: when logged time reaches the target, the goal completes.
             </div>
           </div>
           <div className="flex gap-2">
@@ -187,6 +284,51 @@ export function GoalDetailsModal({
               Save
             </Button>
           </div>
+        </div>
+
+        <div className="space-y-3 rounded-xl border border-border p-3">
+          <div className="text-sm font-semibold">Import from URL</div>
+          <div className="flex gap-2">
+            <Input
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://w3schools.io/... or https://roadmap.sh/..."
+            />
+            <Button variant="secondary" onClick={fetchImportedSteps} disabled={isImporting || importUrl.trim().length === 0}>
+              {isImporting ? "Loading..." : "Fetch"}
+            </Button>
+          </div>
+          {importSource && <div className="text-xs text-muted-foreground">Detected source: {importSource}</div>}
+          {importError && <div className="text-xs text-destructive">{importError}</div>}
+
+          {importSteps.length > 0 && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAllImportedSteps(e.target.checked)} />
+                Select all
+              </label>
+              <div className="max-h-32 overflow-y-auto space-y-1 rounded border border-border p-2">
+                {importSteps.map((step, index) => (
+                  <label key={`${step.externalId ?? step.title}-${index}`} className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={step.selected}
+                      onChange={() => toggleImportedStep(index)}
+                      className="mt-1"
+                    />
+                    <span>{step.title}</span>
+                  </label>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                onClick={addImportedSteps}
+                disabled={importSteps.every((step) => !step.selected)}
+              >
+                Add selected steps
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -217,11 +359,50 @@ export function GoalDetailsModal({
                       onChange={() => guard("update goals", () => toggleGoalRoadmapItem(goal.id, item.id))}
                       aria-label={`Mark ${item.title} done`}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className={cn("text-sm font-medium", item.done && "line-through text-muted-foreground")}>
-                        {item.title}
-                      </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {editingItemId === item.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                saveEdit()
+                              }
+                              if (e.key === "Escape") {
+                                e.preventDefault()
+                                cancelEdit()
+                              }
+                            }}
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="secondary" onClick={saveEdit}>
+                              <Save className="h-3 w-3 mr-1" /> Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                              <X className="h-3 w-3 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={cn("text-sm font-medium", item.done && "line-through text-muted-foreground")}>
+                          {item.title}
+                        </div>
+                      )}
                     </div>
+                    {editingItemId !== item.id && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => beginEdit(item)}
+                        aria-label="Edit step"
+                        title="Edit step"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
