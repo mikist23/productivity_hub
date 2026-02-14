@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose"
 
 export interface UserDashboardDocument {
   userId: string
+  revision: number
   userProfile: Record<string, unknown>
   skills: unknown[]
   jobs: unknown[]
@@ -22,6 +23,7 @@ export interface UserDashboardDocument {
 const UserDashboardSchema = new Schema<UserDashboardDocument>(
   {
     userId: { type: String, required: true, unique: true, index: true },
+    revision: { type: Number, default: 0 },
     userProfile: { type: Schema.Types.Mixed, default: {} },
     skills: { type: [Schema.Types.Mixed], default: [] },
     jobs: { type: [Schema.Types.Mixed], default: [] },
