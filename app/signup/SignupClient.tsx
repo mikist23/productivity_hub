@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -13,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import productivityLogo from "@/lib/images/Productivity_hub.png"
+import { AppLogo } from "@/components/common/AppLogo"
 
 function sanitizeNextPath(nextPath: string | undefined) {
   if (!nextPath) return null
@@ -108,14 +107,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
           >
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-12 w-12 rounded-xl overflow-hidden border border-cyan-400/30 shadow-lg shadow-cyan-500/20 bg-slate-900">
-                <Image
-                  src={productivityLogo}
-                  alt="Productivity Hub logo"
-                  className="h-full w-full object-cover"
-                  priority
-                />
-              </div>
+              <AppLogo size="lg" priority />
               <span className="text-3xl font-bold text-white">Productivity Hub</span>
             </div>
             
@@ -166,14 +158,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="h-10 w-10 rounded-xl overflow-hidden border border-cyan-400/30 bg-slate-900">
-              <Image
-                src={productivityLogo}
-                alt="Productivity Hub logo"
-                className="h-full w-full object-cover"
-                priority
-              />
-            </div>
+            <AppLogo size="md" priority />
             <span className="text-2xl font-bold">Productivity Hub</span>
           </div>
 

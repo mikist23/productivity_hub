@@ -32,6 +32,13 @@ import { cn } from "@/lib/utils"
 import type { DailyTarget } from "@/app/dashboard/providers"
 import { AuthPromptModal } from "@/components/dashboard/AuthPromptModal"
 import { useGuardedAction } from "@/components/dashboard/useGuardedAction"
+import {
+  buildRoadmapSourceUrl,
+  resolveSkillSlugFromGoalTitle,
+  roadmapSkillCatalog,
+  suggestRoadmapSkills,
+  type RoadmapSkillCatalogItem,
+} from "@/lib/roadmap-import/source-url"
 
 interface EnhancedAddGoalModalProps {
   isOpen: boolean
@@ -115,6 +122,9 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
   const [importUrl, setImportUrl] = useState("")
   const [selectedImportSource, setSelectedImportSource] = useState<ImportSourceOption>("auto")
   const [importSource, setImportSource] = useState<string | null>(null)
+  const [autoMatchedSkill, setAutoMatchedSkill] = useState<string | null>(null)
+  const [quickPickerOpen, setQuickPickerOpen] = useState(false)
+  const [suggestedSkills, setSuggestedSkills] = useState<RoadmapSkillCatalogItem[]>(roadmapSkillCatalog.slice(0, 10))
   const [importError, setImportError] = useState("")
   const [isImporting, setIsImporting] = useState(false)
   const [importedSteps, setImportedSteps] = useState<Array<{ externalId?: string; title: string; selected: boolean }>>([])
@@ -218,10 +228,13 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     setDailyTargets(updated)
   }
 
-  const fetchImportedSteps = async (sourceOverride?: ImportSourceOption) => {
-    const trimmed = importUrl.trim()
+  const fetchImportedSteps = async (sourceOverride?: ImportSourceOption, urlOverride?: string) => {
+    const trimmed = (urlOverride ?? importUrl).trim()
     if (!trimmed) return
 
+    if (urlOverride) {
+      setImportUrl(trimmed)
+    }
     setImportError("")
     setIsImporting(true)
 
@@ -248,6 +261,7 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
 
       setImportSource(payload.source ?? null)
       setImportedSteps(payload.steps.map((step) => ({ ...step, selected: true })))
+      setQuickPickerOpen(false)
     } catch {
       setImportError("Unable to import steps from this URL")
       setImportedSteps([])
@@ -257,11 +271,47 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     }
   }
 
+  const applySkillSelection = (source: Exclude<ImportSourceOption, "auto">, skill: RoadmapSkillCatalogItem) => {
+    const generatedUrl = buildRoadmapSourceUrl(source, skill.slug)
+    if (!generatedUrl) return
+    setAutoMatchedSkill(skill.label)
+    setImportError("")
+    setQuickPickerOpen(false)
+    void fetchImportedSteps(source, generatedUrl)
+  }
+
   const selectImportSource = (source: ImportSourceOption) => {
     setSelectedImportSource(source)
+
+    if (source === "auto") {
+      if (importUrl.trim().length > 0 && !isImporting) {
+        void fetchImportedSteps(source)
+      }
+      return
+    }
+
+    const candidateText = title.trim()
+    const resolved = resolveSkillSlugFromGoalTitle(candidateText)
+    if (resolved.slug) {
+      const generatedUrl = buildRoadmapSourceUrl(source, resolved.slug)
+      if (generatedUrl) {
+        const matched = roadmapSkillCatalog.find((skill) => skill.slug === resolved.slug)
+        setAutoMatchedSkill(matched?.label ?? resolved.slug)
+        setImportError("")
+        setQuickPickerOpen(false)
+        void fetchImportedSteps(source, generatedUrl)
+        return
+      }
+    }
+
     if (importUrl.trim().length > 0 && !isImporting) {
       void fetchImportedSteps(source)
+      return
     }
+
+    setAutoMatchedSkill(null)
+    setSuggestedSkills(suggestRoadmapSkills(candidateText, 12))
+    setQuickPickerOpen(true)
   }
 
   const toggleImportedStep = (index: number) => {
@@ -343,6 +393,9 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
     setImportUrl("")
     setSelectedImportSource("auto")
     setImportSource(null)
+    setAutoMatchedSkill(null)
+    setQuickPickerOpen(false)
+    setSuggestedSkills(roadmapSkillCatalog.slice(0, 10))
     setImportError("")
     setImportedSteps([])
     setIsImporting(false)
@@ -750,6 +803,33 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
                   {isImporting ? "Loading..." : "Fetch"}
                 </Button>
               </div>
+              {autoMatchedSkill && (
+                <div className="text-xs text-muted-foreground">Auto-matched skill: {autoMatchedSkill}</div>
+              )}
+              {quickPickerOpen && selectedImportSource !== "auto" && (
+                <div className="space-y-2 rounded border border-border p-2">
+                  <div className="text-xs text-muted-foreground">
+                    Pick a skill to generate the {selectedImportSource === "w3schools"
+                      ? "W3Schools"
+                      : selectedImportSource === "roadmapsh"
+                        ? "roadmap.sh"
+                        : "freeCodeCamp"} URL.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedSkills.map((skill) => (
+                      <Button
+                        key={`${selectedImportSource}-${skill.slug}`}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applySkillSelection(selectedImportSource, skill)}
+                      >
+                        {skill.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {importSource && (
                 <div className="text-xs text-muted-foreground">Detected source: {importSource}</div>
               )}

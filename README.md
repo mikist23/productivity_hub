@@ -44,6 +44,16 @@ NEXT_PUBLIC_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/<your-handle>
 
 If this variable is missing or invalid, the support button is hidden automatically.
 
+## Smart Roadmap Source Loading
+
+Goal roadmap import now supports smart URL generation from goal titles.  
+Examples:
+
+- `Master Python` + `Load from W3Schools` => auto-generates a W3Schools Python URL and fetches steps.
+- `Learn Swift` + `Load from roadmap.sh` => auto-generates a roadmap.sh Swift URL and fetches steps.
+
+If no skill keyword is detected, the app shows a quick skill picker and then generates the source URL automatically.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

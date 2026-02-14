@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useState } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import {
@@ -25,7 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
-import productivityLogo from "@/lib/images/Productivity_hub.png"
+import { AppLogo } from "@/components/common/AppLogo"
 
 const features = [
   {
@@ -102,14 +101,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="h-10 w-10 rounded-xl overflow-hidden border border-cyan-400/30 shadow-lg shadow-cyan-500/20 bg-slate-900">
-              <Image
-                src={productivityLogo}
-                alt="Productivity Hub logo"
-                className="h-full w-full object-cover"
-                priority
-              />
-            </div>
+            <AppLogo size="md" priority />
             <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
           </motion.div>
           
@@ -418,13 +410,7 @@ export default function LandingPage() {
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-4 lg:col-span-2">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl overflow-hidden border border-cyan-400/30 shadow-lg shadow-cyan-500/20 bg-slate-900">
-                  <Image
-                    src={productivityLogo}
-                    alt="Productivity Hub logo"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+                <AppLogo size="lg" />
                 <div>
                   <p className="font-semibold text-lg text-white">Productivity Hub</p>
                   <p className="text-sm text-slate-400">Plan smarter. Execute daily. Improve continuously.</p>

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { LogOut } from "lucide-react"
@@ -10,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { navItems } from "@/components/layout/nav-items"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
-import productivityLogo from "@/lib/images/Productivity_hub.png"
+import { AppLogo } from "@/components/common/AppLogo"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -24,13 +23,7 @@ export function Sidebar() {
     >
       <div className="flex h-16 items-center px-6 border-b border-border/50">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-          <div className="h-8 w-8 rounded-lg overflow-hidden border border-cyan-400/30 bg-slate-900">
-            <Image
-              src={productivityLogo}
-              alt="Productivity Hub logo"
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <AppLogo size="sm" />
           <span>Productivity Hub</span>
         </div>
       </div>
