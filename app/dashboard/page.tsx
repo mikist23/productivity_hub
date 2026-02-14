@@ -468,6 +468,11 @@ export default function DashboardPage() {
                             </span>
                           )}
                         </div>
+                        {(goal.roadmap?.length ?? 0) > 0 && (
+                          <div className="text-xs text-slate-500">
+                            {(goal.roadmap ?? []).filter((step) => step.done).length}/{(goal.roadmap ?? []).length} roadmap steps
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -224,6 +224,7 @@ export interface DashboardContextType {
   updateGoalStatus: (id: string, status: GoalStatus) => void
   updateGoalProgress: (id: string, progress: number) => void
   addGoalRoadmapItem: (goalId: string, title: string) => void
+  updateGoalRoadmapItem: (goalId: string, itemId: string, title: string) => void
   toggleGoalRoadmapItem: (goalId: string, itemId: string) => void
   removeGoalRoadmapItem: (goalId: string, itemId: string) => void
   setGoalTargetMinutes: (goalId: string, targetMinutes: number | null) => void
@@ -447,6 +448,22 @@ function asTimerState(value: unknown): TimerState {
   }
 }
 
+type CloudRevisionMeta = {
+  value: number
+  updatedAt: string | null
+}
+
+type CloudDashboardResponse = Partial<CloudDashboardPayload> & {
+  revision?: Partial<CloudRevisionMeta>
+}
+
+function asRevision(value: unknown): number {
+  if (!value || typeof value !== "object") return 0
+  const candidate = value as Partial<CloudRevisionMeta>
+  if (typeof candidate.value !== "number" || !Number.isFinite(candidate.value)) return 0
+  return Math.max(0, Math.floor(candidate.value))
+}
+
 function normalizeUserProfile(value: unknown): UserProfile {
   if (!value || typeof value !== "object") return defaultProfile
   const profile = value as Partial<UserProfile>
@@ -501,6 +518,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [recipes, setRecipes] = React.useState<Recipe[]>(emptyRecipes)
   const [posts, setPosts] = React.useState<Post[]>(emptyPosts)
   const [timerState, setTimerState] = React.useState<TimerState>(defaultTimerState)
+  const [serverRevision, setServerRevision] = React.useState(0)
   const cloudSyncRef = React.useRef({ loaded: false, skipNextSave: false })
 
   const cloudPayload = React.useMemo<CloudDashboardPayload>(
@@ -534,10 +552,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         })
         if (!res.ok) return
 
-        const data = (await res.json()) as Partial<CloudDashboardPayload>
+        const data = (await res.json()) as CloudDashboardResponse
         if (cancelled) return
 
         cloudSyncRef.current.skipNextSave = true
+        setServerRevision(asRevision(data.revision))
         const hydratedProfile = normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile)
         setUserProfile(mergeAuthIdentityIntoProfile(hydratedProfile, user))
         setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
@@ -598,10 +617,42 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(cloudPayload),
+          body: JSON.stringify({
+            ...cloudPayload,
+            baseRevision: serverRevision,
+          }),
           signal: controller.signal,
           credentials: "same-origin",
         })
+          .then(async (response) => {
+            if (!response.ok) return null
+            const data = await response.json().catch(() => null) as
+              | (CloudDashboardResponse & { mergeApplied?: boolean })
+              | null
+            return data
+          })
+          .then((data) => {
+            if (!data) return
+            const nextRevision = asRevision(data.revision)
+            setServerRevision(nextRevision)
+
+            if (data.mergeApplied) {
+              cloudSyncRef.current.skipNextSave = true
+              setUserProfile(normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile))
+              setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
+              setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
+              setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
+              setTasks(asArray<Task>(data.tasks, emptyTasks))
+              setFocusSessions(asArray<FocusSession>(data.focusSessions, emptyFocusSessions))
+              setGoals(asArray<Goal>(data.goals, emptyGoals))
+              setRecentActivities(asArray<ActivityLog>(data.recentActivities, emptyActivities))
+              setMapPins(asArray<MapPin>(data.mapPins, emptyMapPins))
+              setMapViewState(asMapView(data.mapView))
+              setRecipes(asArray<Recipe>(data.recipes, emptyRecipes))
+              setPosts(asArray<Post>(data.posts, emptyPosts))
+              setTimerState(asTimerState(data.timerState))
+            }
+          })
       } catch {
         // Keep local updates even if cloud write fails.
       }
@@ -611,7 +662,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       controller.abort()
       clearTimeout(timeout)
     }
-  }, [cloudPayload, user?.id])
+  }, [cloudPayload, serverRevision, user?.id])
 
   // --- Helper to Log Activity ---
   const logActivity = (text: string, type: ActivityLog["type"]) => {
@@ -1080,6 +1131,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       })
   }
 
+  const updateGoalRoadmapItem = (goalId: string, itemId: string, title: string) => {
+      const trimmed = title.trim()
+      if (!trimmed) return
+      setGoals(prev => prev.map(g => {
+          if (g.id !== goalId) return g
+          const roadmap = goalRoadmapItems(g).map(i => i.id === itemId ? { ...i, title: trimmed } : i)
+          const next = computeGoalDerived({ ...g, roadmap }, focusSessions)
+          return next
+      }))
+  }
+
   // --- Daily Targets Methods ---
   const getTodayTarget = (goalId: string): DailyTarget | null => {
       const goal = goals.find(g => g.id === goalId)
@@ -1298,6 +1360,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       updateGoalStatus,
       updateGoalProgress,
       addGoalRoadmapItem,
+      updateGoalRoadmapItem,
       toggleGoalRoadmapItem,
       removeGoalRoadmapItem,
       setGoalTargetMinutes,
