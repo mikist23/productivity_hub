@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import {
   ArrowRight,
   BookOpen,
@@ -74,6 +74,7 @@ const features = [
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const shouldReduceMotion = useReducedMotion()
   const [showDemoModal, setShowDemoModal] = useState(false)
   const [isLoadingDemo, setIsLoadingDemo] = useState(false)
 
@@ -220,48 +221,126 @@ export default function LandingPage() {
             className="relative"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-pink-600/20 rounded-3xl blur-3xl" />
-            <Card className="relative bg-slate-900/80 border-slate-700/50 backdrop-blur-xl overflow-hidden">
-              <CardContent className="p-8 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center">
-                      <Target className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Learn Flutter</div>
-                      <div className="text-sm text-slate-400">Daily Goal</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-violet-400">3h 30m</div>
-                    <div className="text-sm text-slate-400">of 4h 30m</div>
-                  </div>
-                </div>
-                
-                <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-violet-600 to-pink-600"
-                    initial={{ width: 0 }}
-                    animate={{ width: "78%" }}
-                    transition={{ duration: 1.5, delay: 0.5 }}
-                  />
-                </div>
+            <motion.div
+              className="relative"
+              animate={
+                shouldReduceMotion
+                  ? undefined
+                  : { x: [0, -14, 14, 0], rotateZ: [0, -0.45, 0.45, 0] }
+              }
+              transition={
+                shouldReduceMotion
+                  ? undefined
+                  : {
+                      duration: 9,
+                      ease: "easeInOut",
+                      repeat: Number.POSITIVE_INFINITY,
+                    }
+              }
+            >
+              <Card className="relative bg-slate-900/80 border-slate-700/50 backdrop-blur-xl overflow-hidden">
+                {!shouldReduceMotion && (
+                  <>
+                    <motion.div
+                      className="pointer-events-none absolute -left-1/3 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-violet-400/20 to-transparent blur-2xl"
+                      animate={{ x: ["-55%", "180%"] }}
+                      transition={{ duration: 7.2, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+                    />
+                    <motion.div
+                      className="pointer-events-none absolute -right-1/3 top-0 h-full w-1/2 bg-gradient-to-l from-transparent via-pink-400/15 to-transparent blur-2xl"
+                      animate={{ x: ["40%", "-175%"] }}
+                      transition={{ duration: 8.8, delay: 0.8, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+                    />
+                  </>
+                )}
 
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { label: "Focus Time", value: "3.5h", icon: Clock },
-                    { label: "Streak", value: "12 days", icon: Zap },
-                    { label: "Goals", value: "4 active", icon: Target },
-                  ].map((stat, i) => (
-                    <div key={i} className="text-center p-3 rounded-xl bg-slate-800/50">
-                      <stat.icon className="h-5 w-5 text-slate-400 mx-auto mb-1" />
-                      <div className="font-semibold">{stat.value}</div>
-                      <div className="text-xs text-slate-500">{stat.label}</div>
+                <CardContent className="p-8 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center"
+                        animate={shouldReduceMotion ? undefined : { rotate: [0, -6, 6, 0], scale: [1, 1.04, 1] }}
+                        transition={
+                          shouldReduceMotion
+                            ? undefined
+                            : {
+                                duration: 4.8,
+                                ease: "easeInOut",
+                                repeat: Number.POSITIVE_INFINITY,
+                              }
+                        }
+                      >
+                        <Target className="h-5 w-5 text-white" />
+                      </motion.div>
+                      <div>
+                        <div className="font-semibold">Learn Flutter</div>
+                        <div className="text-sm text-slate-400">Daily Goal</div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <motion.div
+                      className="text-right"
+                      animate={shouldReduceMotion ? undefined : { y: [0, -3, 0] }}
+                      transition={
+                        shouldReduceMotion
+                          ? undefined
+                          : {
+                              duration: 3.8,
+                              ease: "easeInOut",
+                              repeat: Number.POSITIVE_INFINITY,
+                            }
+                      }
+                    >
+                      <div className="text-2xl font-bold text-violet-400">3h 30m</div>
+                      <div className="text-sm text-slate-400">of 4h 30m</div>
+                    </motion.div>
+                  </div>
+
+                  <div className="relative h-3 rounded-full bg-slate-800 overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-violet-600 to-pink-600"
+                      initial={{ width: 0 }}
+                      animate={{ width: "78%" }}
+                      transition={{ duration: 1.5, delay: 0.5 }}
+                    />
+                    {!shouldReduceMotion && (
+                      <motion.div
+                        className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/45 to-transparent"
+                        animate={{ x: ["-60%", "310%"] }}
+                        transition={{ duration: 2.8, ease: "linear", repeat: Number.POSITIVE_INFINITY, delay: 1.2 }}
+                      />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: "Focus Time", value: "3.5h", icon: Clock },
+                      { label: "Streak", value: "12 days", icon: Zap },
+                      { label: "Goals", value: "4 active", icon: Target },
+                    ].map((stat, i) => (
+                      <motion.div
+                        key={i}
+                        className="text-center p-3 rounded-xl bg-slate-800/50"
+                        animate={shouldReduceMotion ? undefined : { y: [0, -4, 0], scale: [1, 1.02, 1] }}
+                        transition={
+                          shouldReduceMotion
+                            ? undefined
+                            : {
+                                duration: 4,
+                                ease: "easeInOut",
+                                repeat: Number.POSITIVE_INFINITY,
+                                delay: 0.25 + i * 0.2,
+                              }
+                        }
+                      >
+                        <stat.icon className="h-5 w-5 text-slate-400 mx-auto mb-1" />
+                        <div className="font-semibold">{stat.value}</div>
+                        <div className="text-xs text-slate-500">{stat.label}</div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
         </section>
 
