@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Productivity Hub",
-  description: "A productivity dashboard with goals, focus tracking, skills, jobs, and MongoDB-backed cloud sync.",
+  description: "A productivity dashboard for goals, focus tracking, skills, and job applications.",
 };
 
 export default function RootLayout({

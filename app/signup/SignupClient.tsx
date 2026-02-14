@@ -25,7 +25,7 @@ const features = [
   { icon: Target, text: "Track goals & milestones" },
   { icon: Clock, text: "Log focus time" },
   { icon: Zap, text: "Build productive habits" },
-  { icon: CheckCircle2, text: "Securely synced to MongoDB" },
+  { icon: CheckCircle2, text: "Sync your progress across sessions" },
 ]
 
 export function SignupClient({ nextPath }: { nextPath?: string }) {
@@ -118,7 +118,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
             </h1>
             
             <p className="text-lg text-slate-400 mb-10 max-w-lg">
-              Join thousands of users who have transformed their productivity. Track goals, manage time, and achieve more.
+              Create your workspace to plan goals, track focus, and execute consistently each day.
             </p>
             
             {/* Features */}
@@ -144,7 +144,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
         {/* Bottom Badge */}
         <div className="absolute bottom-8 left-16 xl:left-24 flex items-center gap-2 text-sm text-slate-500">
           <Sparkles className="h-4 w-4" />
-          <span>Free forever | No subscriptions | Private by design</span>
+          <span>Focused workflows | Practical execution | Private account</span>
         </div>
       </div>
 

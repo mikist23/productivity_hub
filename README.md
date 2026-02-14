@@ -44,6 +44,18 @@ NEXT_PUBLIC_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/<your-handle>
 
 If this variable is missing or invalid, the support button is hidden automatically.
 
+## Optional Footer Social Links
+
+To show social buttons in the landing footer, configure any of these:
+
+```env
+NEXT_PUBLIC_SOCIAL_GITHUB_URL=https://github.com/<your-handle>
+NEXT_PUBLIC_SOCIAL_X_URL=https://x.com/<your-handle>
+NEXT_PUBLIC_SOCIAL_LINKEDIN_URL=https://www.linkedin.com/in/<your-handle>
+```
+
+If a social URL is missing or invalid, that social button is hidden automatically.
+
 ## Smart Roadmap Source Loading
 
 Goal roadmap import now supports smart URL generation from goal titles.  

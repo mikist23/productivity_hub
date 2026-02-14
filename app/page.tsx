@@ -9,14 +9,15 @@ import {
   Briefcase,
   CheckCircle2,
   Clock,
-  Database,
+  Github,
   GraduationCap,
+  Linkedin,
   MapPin,
   Newspaper,
   Play,
-  Shield,
   Sparkles,
   Target,
+  Twitter,
   X,
   Zap,
 } from "lucide-react"
@@ -25,6 +26,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
 import { AppLogo } from "@/components/common/AppLogo"
+import { getSocialLinks } from "@/lib/social-links"
 
 const features = [
   {
@@ -76,6 +78,7 @@ export default function LandingPage() {
   const shouldReduceMotion = useReducedMotion()
   const [showDemoModal, setShowDemoModal] = useState(false)
   const [isLoadingDemo, setIsLoadingDemo] = useState(false)
+  const socialLinks = getSocialLinks()
 
   const handleTryDemo = async () => {
     setIsLoadingDemo(true)
@@ -153,7 +156,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300">
               <Sparkles className="h-4 w-4" />
-              <span>Free Forever | Local-first | No subscriptions</span>
+              <span>Goal planning, focus tracking, and execution in one workspace</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
@@ -197,11 +200,11 @@ export default function LandingPage() {
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span>No credit card required</span>
+                <span>Start with the demo in one click</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span>Free forever</span>
+                <span>Works on desktop and mobile</span>
               </div>
             </div>
           </motion.div>
@@ -405,61 +408,78 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="relative border-t border-slate-800/60 bg-slate-950/90">
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_10%,rgba(45,212,191,0.07),transparent_35%),radial-gradient(circle_at_80%_90%,rgba(217,70,239,0.08),transparent_35%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-12 space-y-10">
-          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-4 lg:col-span-2">
-              <div className="flex items-center gap-3">
-                <AppLogo size="lg" />
-                <div>
-                  <p className="font-semibold text-lg text-white">Productivity Hub</p>
-                  <p className="text-sm text-slate-400">Plan smarter. Execute daily. Improve continuously.</p>
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_12%_12%,rgba(99,102,241,0.18),transparent_34%),radial-gradient(circle_at_82%_88%,rgba(236,72,153,0.16),transparent_30%)]" />
+        <div className="relative mx-auto max-w-7xl px-6 py-12">
+          <div className="rounded-3xl border border-slate-700/60 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_30px_90px_-40px_rgba(76,29,149,0.85)] md:p-8">
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="space-y-4 md:col-span-1">
+                <div className="flex items-center gap-3">
+                  <AppLogo size="lg" />
+                  <div>
+                    <p className="font-semibold text-lg text-white">Productivity Hub</p>
+                    <p className="text-sm text-slate-400">Plan clearly. Execute consistently.</p>
+                  </div>
                 </div>
+                <p className="text-sm text-slate-400">
+                  A focused workspace for goals, time tracking, skills, and career momentum.
+                </p>
               </div>
-              <p className="text-sm text-slate-400 max-w-xl">
-                A practical workspace for goals, time tracking, skills, and jobs. Built to keep your progress visible and your daily momentum strong.
-              </p>
-            </div>
 
-            <div className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">Product</p>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li>Goals and Time Tracking</li>
-                <li>Skills and Job Pipeline</li>
-                <li>Local-first Experience</li>
-              </ul>
-            </div>
+              <div className="space-y-3 md:col-span-1">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">Product</p>
+                <ul className="space-y-2 text-sm text-slate-400">
+                  <li>Goals and Roadmaps</li>
+                  <li>Time and Focus Tracking</li>
+                  <li>Skills and Job Pipeline</li>
+                </ul>
+              </div>
 
-            <div className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">Trust</p>
-              <div className="space-y-2 text-sm text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-emerald-400" />
-                  <span>Secure authentication</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-cyan-400" />
-                  <span>MongoDB-backed storage</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-pink-400" />
-                  <span>No subscription required</span>
-                </div>
+              <div className="space-y-3 md:col-span-1">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">Connect</p>
+                {socialLinks.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {socialLinks.map((social) => {
+                      const icon =
+                        social.platform === "github"
+                          ? <Github className="h-4 w-4" />
+                          : social.platform === "x"
+                            ? <Twitter className="h-4 w-4" />
+                            : <Linkedin className="h-4 w-4" />
+                      const label =
+                        social.platform === "github"
+                          ? "GitHub"
+                          : social.platform === "x"
+                            ? "X"
+                            : "LinkedIn"
+
+                      return (
+                        <a
+                          key={social.platform}
+                          href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800"
+                          aria-label={`Open ${label}`}
+                        >
+                          {icon}
+                          <span>{label}</span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">Add social links in environment variables to display them here.</p>
+                )}
               </div>
             </div>
-          </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+            <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
 
-          <div className="flex flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <p>Copyright {new Date().getFullYear()} Productivity Hub. Built to stay free.</p>
-              <p className="text-xs text-slate-600">Your data is securely stored in MongoDB.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-slate-400 hidden sm:block">
-                If Productivity Hub helps you, support continued development.
-              </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1 text-sm text-slate-500">
+                <p>Copyright {new Date().getFullYear()} Productivity Hub. All rights reserved.</p>
+                <p className="text-xs text-slate-600">Built for practical, everyday execution.</p>
+              </div>
               <BuyMeCoffeeButton
                 variant="outline"
                 size="sm"
