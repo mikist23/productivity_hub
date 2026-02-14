@@ -42,9 +42,9 @@ export function AuthPromptModal({ isOpen, onClose, action = "perform this action
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-card border border-border/50 rounded-2xl shadow-2xl p-8">
+            <div className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-hidden bg-card border border-border/50 rounded-2xl shadow-2xl flex flex-col">
               {/* Close button */}
               <button
                 onClick={onClose}
@@ -53,48 +53,51 @@ export function AuthPromptModal({ isOpen, onClose, action = "perform this action
                 <X className="h-4 w-4" />
               </button>
 
-              {/* Icon */}
-              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                <Lock className="h-8 w-8 text-primary" />
-              </div>
+              <div className="flex-1 overflow-y-auto p-8">
+                {/* Icon */}
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                  <Lock className="h-8 w-8 text-primary" />
+                </div>
 
-              {/* Content */}
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Sign in Required</h3>
-                <p className="text-muted-foreground">
-                  You need to sign in to {action}. Create a free account to save your progress and access all features.
+                {/* Content */}
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold mb-2">Sign in Required</h3>
+                  <p className="text-muted-foreground">
+                    You need to sign in to {action}. Create a free account to save your progress and access all features.
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <p className="mt-6 text-center text-xs text-muted-foreground">
+                  Your data is securely stored in MongoDB for this account
                 </p>
               </div>
 
-              {/* Actions */}
-              <div className="space-y-3">
-                <Link href={`/login?next=${encodedNext}`} className="block">
-                  <Button className="w-full h-12 text-base gap-2">
-                    Sign In
-                    <ArrowRight className="h-4 w-4" />
+              <div className="shrink-0 border-t border-border p-4 backdrop-blur-sm [padding-bottom:max(env(safe-area-inset-bottom),1rem)]">
+                <div className="space-y-3">
+                  <Link href={`/login?next=${encodedNext}`} className="block">
+                    <Button className="w-full h-12 text-base gap-2">
+                      Sign In
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  
+                  <Link href={`/signup?next=${encodedNext}`} className="block">
+                    <Button variant="outline" className="w-full h-12 text-base gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Create Account
+                    </Button>
+                  </Link>
+                  
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={onClose}
+                  >
+                    Continue browsing
                   </Button>
-                </Link>
-                
-                <Link href={`/signup?next=${encodedNext}`} className="block">
-                  <Button variant="outline" className="w-full h-12 text-base gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Create Account
-                  </Button>
-                </Link>
-                
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={onClose}
-                >
-                  Continue browsing
-                </Button>
+                </div>
               </div>
-
-              {/* Footer */}
-              <p className="mt-6 text-center text-xs text-muted-foreground">
-                Your data is securely stored in MongoDB for this account
-              </p>
             </div>
           </motion.div>
         </>

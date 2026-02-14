@@ -103,8 +103,16 @@ export function AddJobModal({ isOpen, onClose }: AddJobModalProps) {
       onClose={onClose}
       title="Track Application"
       description="Add a new job application to your tracking board."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-job-form">Track Application</Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-job-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="role">Role / Title</Label>
           <Input
@@ -266,12 +274,6 @@ export function AddJobModal({ isOpen, onClose }: AddJobModalProps) {
           </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit">Track Application</Button>
-        </div>
         <AuthPromptModal
           isOpen={authPrompt.isOpen}
           onClose={authPrompt.closePrompt}
