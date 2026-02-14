@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
 import productivityLogo from "@/lib/images/Productivity_hub.png"
 
 const features = [
@@ -385,9 +386,21 @@ export default function LandingPage() {
 
           <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
 
-          <div className="flex flex-col gap-3 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-            <p>Copyright {new Date().getFullYear()} Productivity Hub. Built to stay free.</p>
-            <p className="text-xs text-slate-600">Your data is securely stored in MongoDB.</p>
+          <div className="flex flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <p>Copyright {new Date().getFullYear()} Productivity Hub. Built to stay free.</p>
+              <p className="text-xs text-slate-600">Your data is securely stored in MongoDB.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-slate-400 hidden sm:block">
+                If Productivity Hub helps you, support continued development.
+              </p>
+              <BuyMeCoffeeButton
+                variant="outline"
+                size="sm"
+                className="border-slate-600 hover:bg-slate-800 text-slate-200"
+              />
+            </div>
           </div>
         </div>
       </footer>

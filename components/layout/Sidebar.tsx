@@ -9,6 +9,7 @@ import { LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { navItems } from "@/components/layout/nav-items"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
 import productivityLogo from "@/lib/images/Productivity_hub.png"
 
 export function Sidebar() {
@@ -19,7 +20,7 @@ export function Sidebar() {
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="hidden w-64 border-r border-border/50 bg-background/80 backdrop-blur-xl lg:block h-screen sticky top-0"
+      className="hidden w-64 border-r border-border/50 bg-background/80 backdrop-blur-xl lg:flex flex-col h-screen sticky top-0"
     >
       <div className="flex h-16 items-center px-6 border-b border-border/50">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
@@ -33,7 +34,7 @@ export function Sidebar() {
           <span>Productivity Hub</span>
         </div>
       </div>
-      <nav className="space-y-1 p-4">
+      <nav className="space-y-1 p-4 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           
@@ -68,11 +69,17 @@ export function Sidebar() {
             </Link>
           )
         })}
-        
-        {/* Sign Out - Positioned after Settings */}
+      </nav>
+
+      <div className="mt-auto p-4 border-t border-border/50 space-y-2">
+        <BuyMeCoffeeButton
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+        />
         <button
           onClick={logout}
-          className="relative group block w-full mt-2"
+          className="relative group block w-full"
         >
           <div
             className={cn(
@@ -85,7 +92,7 @@ export function Sidebar() {
           </div>
           <div className="absolute inset-0 bg-destructive/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
-      </nav>
+      </div>
     </motion.aside>
   )
 }

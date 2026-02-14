@@ -34,6 +34,16 @@ MONGODB_DB=productivity_hub
 2. Restart the dev server.
 3. Sign in and use the dashboard normally. Data is loaded from and saved to MongoDB through `/api/dashboard`.
 
+## Optional Support CTA (Buy Me a Coffee)
+
+To enable the "Buy me a coffee" button in the landing page and app navigation, set:
+
+```env
+NEXT_PUBLIC_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/<your-handle>
+```
+
+If this variable is missing or invalid, the support button is hidden automatically.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
