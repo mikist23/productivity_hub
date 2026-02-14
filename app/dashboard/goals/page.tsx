@@ -60,13 +60,6 @@ export default function GoalsPage() {
            <h1 className="text-3xl font-bold tracking-tight">Goals</h1>
            <p className="text-muted-foreground">Set and track your personal goals with roadmaps</p>
         </div>
-        <Button onClick={() => {
-          if (promptAuth("add goals", "/dashboard/goals")) {
-            setIsModalOpen(true)
-          }
-        }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Goal
-        </Button>
       </motion.div>
 
       <div className="grid gap-6 md:grid-cols-3 h-full items-start">
@@ -168,17 +161,24 @@ export default function GoalsPage() {
                             </Card>
                         </motion.div>
                     ))}
-                    <Button 
-                        variant="ghost" 
-                        className="w-full text-muted-foreground border border-dashed border-border hover:bg-accent/50 hover:text-foreground"
-                        onClick={() => {
-                          if (promptAuth("add goals", "/dashboard/goals")) {
-                            setIsModalOpen(true)
-                          }
-                        }}
-                    >
-                        <Plus className="mr-2 h-4 w-4" /> Add Goal
-                    </Button>
+                    {col.id === "todo" && (
+                      <>
+                        <p className="px-1 text-[11px] text-muted-foreground">
+                          Add new goals here to start your workflow.
+                        </p>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full text-muted-foreground border border-dashed border-border hover:bg-accent/50 hover:text-foreground"
+                          onClick={() => {
+                            if (promptAuth("add goals", "/dashboard/goals")) {
+                              setIsModalOpen(true)
+                            }
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" /> Add Goal
+                        </Button>
+                      </>
+                    )}
                 </div>
             </div>
         ))}
