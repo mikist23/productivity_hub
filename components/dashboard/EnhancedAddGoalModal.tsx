@@ -361,11 +361,11 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="bg-background rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-background rounded-2xl shadow-2xl max-w-3xl w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-6 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="shrink-0 p-6 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -382,7 +382,7 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Goal Templates */}
             <div>
               <Label className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -830,8 +830,9 @@ export function EnhancedAddGoalModal({ isOpen, onClose, onAddGoal }: EnhancedAdd
               </AnimatePresence>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex gap-3 pt-4">
+          </div>
+          <div className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm [padding-bottom:max(env(safe-area-inset-bottom),1rem)]">
+            <div className="flex gap-3">
               <Button
                 onClick={handleSubmit}
                 className="flex-1 h-12 text-base"

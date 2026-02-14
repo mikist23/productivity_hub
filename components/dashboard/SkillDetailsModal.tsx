@@ -67,8 +67,28 @@ export function SkillDetailsModal({
       onClose={onClose}
       title={skill.name}
       description={`Category: ${categoryName}`}
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" /> Remove
+          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" form="skill-details-form" disabled={!canSave}>
+              Save
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="skill-details-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="skill-name">Skill Name</Label>
           <Input
@@ -123,25 +143,6 @@ export function SkillDetailsModal({
           />
         </div>
 
-        <div className="flex justify-between items-center pt-4">
-          <Button
-            type="button"
-            variant="ghost"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4 mr-2" /> Remove
-          </Button>
-
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSave}>
-              Save
-            </Button>
-          </div>
-        </div>
       </form>
       <AuthPromptModal
         isOpen={authPrompt.isOpen}

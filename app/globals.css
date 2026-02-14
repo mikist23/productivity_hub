@@ -198,6 +198,25 @@ body {
   background: var(--gradient-danger);
 }
 
+.modal-shell {
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-body-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.modal-footer-sticky {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
 }
@@ -288,4 +307,3 @@ body {
 .gradient-danger {
   background: var(--gradient-danger);
 }
-

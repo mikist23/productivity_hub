@@ -45,6 +45,11 @@ export function FocusModal({ isOpen, onClose }: FocusModalProps) {
       onClose={onClose}
       title="Focus Timer"
       description="Log your deep work sessions."
+      footer={
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" onClick={onClose}>Close</Button>
+        </div>
+      }
     >
       <div className="space-y-6 text-center">
         <div className="py-6 bg-accent/30 rounded-full w-32 h-32 mx-auto flex flex-col items-center justify-center border-4 border-primary/20">

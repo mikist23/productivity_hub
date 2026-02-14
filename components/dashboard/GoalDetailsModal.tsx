@@ -229,6 +229,20 @@ export function GoalDetailsModal({
       onClose={onClose}
       title={goal.title}
       description={`${statusLabel(goal.status)} - ${goal.category} - ${goal.priority} priority`}
+      footer={
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={handleDeleteGoal}
+          >
+            <Trash2 className="h-4 w-4 mr-2" /> Delete goal
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-6">
         <div className="space-y-2">
@@ -437,18 +451,6 @@ export function GoalDetailsModal({
           </div>
         </div>
 
-        <div className="pt-2 flex items-center justify-between">
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-          <Button
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            onClick={handleDeleteGoal}
-          >
-            <Trash2 className="h-4 w-4 mr-2" /> Delete goal
-          </Button>
-        </div>
       </div>
       <AuthPromptModal
         isOpen={authPrompt.isOpen}

@@ -52,8 +52,18 @@ export function PinModal({ isOpen, onClose, mode, initial, onSave }: PinModalPro
       onClose={onClose}
       title={mode === "add" ? "Add Pin" : "Edit Pin"}
       description="Save important places, tasks, and goals on your map."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="pin-form" disabled={!canSave}>
+            {mode === "add" ? "Save Pin" : "Save Changes"}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="pin-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="pin-title">Title</Label>
           <Input
@@ -118,14 +128,6 @@ export function PinModal({ isOpen, onClose, mode, initial, onSave }: PinModalPro
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canSave}>
-            {mode === "add" ? "Save Pin" : "Save Changes"}
-          </Button>
-        </div>
       </form>
     </Modal>
   )

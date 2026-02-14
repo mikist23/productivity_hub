@@ -53,8 +53,18 @@ export function PostModal({ isOpen, onClose, mode, kind, initial, onSave }: Post
       onClose={onClose}
       title={mode === "add" ? `New ${kind}` : `Edit ${kind}`}
       description={kind === "blog" ? "Write and organize posts." : "Capture human stories and reflections."}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="post-form" disabled={!canSave}>
+            {mode === "add" ? "Save" : "Save changes"}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="post-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="post-title">Title</Label>
           <Input
@@ -88,14 +98,6 @@ export function PostModal({ isOpen, onClose, mode, kind, initial, onSave }: Post
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canSave}>
-            {mode === "add" ? "Save" : "Save changes"}
-          </Button>
-        </div>
         <AuthPromptModal
           isOpen={authPrompt.isOpen}
           onClose={authPrompt.closePrompt}

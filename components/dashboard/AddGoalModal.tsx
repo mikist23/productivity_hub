@@ -73,8 +73,14 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
       onClose={onClose}
       title="Set New Goal"
       description="Define a long-term objective."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" form="add-goal-form">Create Goal</Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-goal-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="title">Goal Title</Label>
           <Input 
@@ -161,10 +167,6 @@ export function AddGoalModal({ isOpen, onClose, defaultStatus = 'todo' }: AddGoa
             />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Create Goal</Button>
-        </div>
         <AuthPromptModal
           isOpen={authPrompt.isOpen}
           onClose={authPrompt.closePrompt}

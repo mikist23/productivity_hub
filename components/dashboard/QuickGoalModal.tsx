@@ -151,10 +151,10 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", duration: 0.2 }}
-          className="bg-background rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-background rounded-2xl shadow-2xl max-w-2xl w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-6 border-b border-border">
+          <div className="shrink-0 p-6 border-b border-border bg-background/95 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -171,7 +171,7 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Goal Templates */}
             <div>
               <Label className="text-sm font-medium mb-3 block">Quick Start Templates</Label>
@@ -266,8 +266,9 @@ export function QuickGoalModal({ isOpen, onClose, onAddGoal }: QuickGoalModalPro
               </p>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex gap-2 pt-4">
+          </div>
+          <div className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm [padding-bottom:max(env(safe-area-inset-bottom),1rem)]">
+            <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
                 className="flex-1"

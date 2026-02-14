@@ -63,8 +63,14 @@ export function AddSkillModal({
       onClose={onClose}
       title="Add New Skill"
       description="Track what you are learning and mastering."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" form="add-skill-form">Add Skill</Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-skill-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <div className="flex gap-2">
@@ -132,10 +138,6 @@ export function AddSkillModal({
             />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Add Skill</Button>
-        </div>
         <AuthPromptModal
           isOpen={authPrompt.isOpen}
           onClose={authPrompt.closePrompt}

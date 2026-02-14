@@ -90,8 +90,18 @@ export function RecipeModal({ isOpen, onClose, mode, initial, onSave }: RecipeMo
       onClose={onClose}
       title={mode === "add" ? "Add Recipe" : "Edit Recipe"}
       description="Store recipes by category and tags."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="recipe-form" disabled={!canSave}>
+            {mode === "add" ? "Save Recipe" : "Save Changes"}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="recipe-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="recipe-title">Title</Label>
           <Input
@@ -179,14 +189,6 @@ export function RecipeModal({ isOpen, onClose, mode, initial, onSave }: RecipeMo
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canSave}>
-            {mode === "add" ? "Save Recipe" : "Save Changes"}
-          </Button>
-        </div>
         <AuthPromptModal
           isOpen={authPrompt.isOpen}
           onClose={authPrompt.closePrompt}

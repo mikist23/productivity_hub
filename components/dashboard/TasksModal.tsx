@@ -37,6 +37,11 @@ export function TasksModal({ isOpen, onClose }: TasksModalProps) {
       onClose={onClose}
       title="Tasks & Priorities"
       description="Manage your daily todos."
+      footer={
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" onClick={onClose}>Close</Button>
+        </div>
+      }
     >
       <div className="space-y-6">
         <form onSubmit={handleAdd} className="flex gap-2">
