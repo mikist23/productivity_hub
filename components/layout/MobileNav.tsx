@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { navItems } from "@/components/layout/nav-items"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
+import { SupportButton } from "@/components/common/SupportButton"
 import { AppLogo } from "@/components/common/AppLogo"
 
 export function MobileNav() {
@@ -95,11 +95,12 @@ export function MobileNav() {
                 <div className="text-xs text-muted-foreground">Signed in as</div>
                 <div className="text-sm font-semibold truncate">{user?.name}</div>
                 <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
-                <BuyMeCoffeeButton
+                <SupportButton
                   variant="outline"
                   size="sm"
                   className="w-full mt-3"
                   onClick={() => setOpen(false)}
+                  label="Support"
                 />
                 <Button
                   variant="outline"

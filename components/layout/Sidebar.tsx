@@ -8,7 +8,7 @@ import { LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { navItems } from "@/components/layout/nav-items"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
+import { SupportButton } from "@/components/common/SupportButton"
 import { AppLogo } from "@/components/common/AppLogo"
 
 export function Sidebar() {
@@ -65,10 +65,11 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto p-4 border-t border-border/50 space-y-2">
-        <BuyMeCoffeeButton
+        <SupportButton
           variant="outline"
           size="sm"
           className="w-full justify-start"
+          label="Support"
         />
         <button
           onClick={logout}

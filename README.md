@@ -34,15 +34,49 @@ MONGODB_DB=productivity_hub
 2. Restart the dev server.
 3. Sign in and use the dashboard normally. Data is loaded from and saved to MongoDB through `/api/dashboard`.
 
-## Optional Support CTA (Buy Me a Coffee)
+## Multi-Method Donations (Hosted First)
 
-To enable the "Buy me a coffee" button in the landing page and app navigation, set:
+To enable the support experience (`/support`) with hosted payment links, set:
 
 ```env
+NEXT_PUBLIC_DONATION_MODE=hosted
 NEXT_PUBLIC_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/<your-handle>
+NEXT_PUBLIC_PAYPAL_ME_URL=https://paypal.me/<your-handle>
+NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/<your-link>
 ```
 
-If this variable is missing or invalid, the support button is hidden automatically.
+Optional local bank transfer display fields:
+
+```env
+NEXT_PUBLIC_BANK_NAME=Your Bank
+NEXT_PUBLIC_BANK_ACCOUNT_NAME=Your Name
+NEXT_PUBLIC_BANK_ACCOUNT_NUMBER=0123456789
+NEXT_PUBLIC_BANK_SWIFT=ABCDEF12
+NEXT_PUBLIC_BANK_REFERENCE_NOTE=Use your email as transfer reference
+```
+
+If a hosted link variable is missing/invalid, that specific payment method is hidden.
+
+### Phase 2 API mode (server-side orchestration)
+
+When you are ready, switch to `NEXT_PUBLIC_DONATION_MODE=api` and configure server secrets:
+
+```env
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+MPESA_WEBHOOK_SECRET=...
+AIRTM_WEBHOOK_SECRET=...
+BANK_TRANSFER_REFERENCE_SECRET=...
+```
+
+API routes added:
+- `GET /api/payments/methods`
+- `POST /api/payments/create-intent`
+- `POST /api/payments/webhooks/:provider`
+- `POST /api/payments/bank/submit-proof`
 
 ## Optional Footer Social Links
 

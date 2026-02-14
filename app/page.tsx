@@ -24,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { BuyMeCoffeeButton } from "@/components/common/BuyMeCoffeeButton"
+import { SupportButton } from "@/components/common/SupportButton"
 import { AppLogo } from "@/components/common/AppLogo"
 import { getSocialLinks } from "@/lib/social-links"
 
@@ -480,10 +480,11 @@ export default function LandingPage() {
                 <p>Copyright {new Date().getFullYear()} Productivity Hub. All rights reserved.</p>
                 <p className="text-xs text-slate-600">Built for practical, everyday execution.</p>
               </div>
-              <BuyMeCoffeeButton
+              <SupportButton
                 variant="outline"
                 size="sm"
                 className="border-slate-600 hover:bg-slate-800 text-slate-200"
+                label="Support"
               />
             </div>
           </div>
