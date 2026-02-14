@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -9,10 +10,12 @@ import {
   Briefcase,
   CheckCircle2,
   Clock,
+  Database,
   GraduationCap,
   MapPin,
   Newspaper,
   Play,
+  Shield,
   Sparkles,
   Target,
   X,
@@ -21,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { cn } from "@/lib/utils"
+import productivityLogo from "@/lib/images/Productivity_hub.png"
 
 const features = [
   {
@@ -97,8 +100,13 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-600/20">
-              M
+            <div className="h-10 w-10 rounded-xl overflow-hidden border border-cyan-400/30 shadow-lg shadow-cyan-500/20 bg-slate-900">
+              <Image
+                src={productivityLogo}
+                alt="Productivity Hub logo"
+                className="h-full w-full object-cover"
+                priority
+              />
             </div>
             <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
           </motion.div>
@@ -162,8 +170,8 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-xl text-slate-400 leading-relaxed max-w-xl">
-              Track goals, time, skills, jobs, and more. Your data stays in your browser - 
-              you're never locked in. Try the demo first, sign up when you're ready.
+              Track goals, time, skills, jobs, and more. Your data stays in your browser -
+              you&apos;re never locked in. Try the demo first, sign up when you&apos;re ready.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -324,19 +332,62 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/50 py-12">
-        <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center text-white font-bold">
-              M
+      <footer className="relative border-t border-slate-800/60 bg-slate-950/90">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_10%,rgba(45,212,191,0.07),transparent_35%),radial-gradient(circle_at_80%_90%,rgba(217,70,239,0.08),transparent_35%)]" />
+        <div className="relative mx-auto max-w-7xl px-6 py-12 space-y-10">
+          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-4 lg:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl overflow-hidden border border-cyan-400/30 shadow-lg shadow-cyan-500/20 bg-slate-900">
+                  <Image
+                    src={productivityLogo}
+                    alt="Productivity Hub logo"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="font-semibold text-lg text-white">Productivity Hub</p>
+                  <p className="text-sm text-slate-400">Plan smarter. Execute daily. Improve continuously.</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-400 max-w-xl">
+                A practical workspace for goals, time tracking, skills, and jobs. Built to keep your progress visible and your daily momentum strong.
+              </p>
             </div>
-            <span className="font-semibold">Productivity Hub</span>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">Product</p>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li>Goals and Time Tracking</li>
+                <li>Skills and Job Pipeline</li>
+                <li>Local-first Experience</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">Trust</p>
+              <div className="space-y-2 text-sm text-slate-400">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-emerald-400" />
+                  <span>Secure authentication</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-cyan-400" />
+                  <span>MongoDB-backed storage</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-pink-400" />
+                  <span>No subscription required</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-slate-500">
-            Copyright {new Date().getFullYear()} Productivity Hub | Built to stay free
-          </div>
-          <div className="text-xs text-slate-600">
-            Your data is securely stored in MongoDB
+
+          <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+
+          <div className="flex flex-col gap-3 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
+            <p>Copyright {new Date().getFullYear()} Productivity Hub. Built to stay free.</p>
+            <p className="text-xs text-slate-600">Your data is securely stored in MongoDB.</p>
           </div>
         </div>
       </footer>
@@ -378,7 +429,7 @@ export default function LandingPage() {
                   <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
                   <div>
                     <div className="font-medium">Sample Goals</div>
-                    <div className="text-sm text-slate-400">Pre-populated with realistic goals like "Learn Flutter" and "Exercise Daily"</div>
+                    <div className="text-sm text-slate-400">Pre-populated with realistic goals like &ldquo;Learn Flutter&rdquo; and &ldquo;Exercise Daily&rdquo;</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
