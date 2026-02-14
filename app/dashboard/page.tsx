@@ -63,6 +63,7 @@ function getGreetingByHour(hour: number) {
 
 export default function DashboardPage() {
   const {
+    isDashboardHydrating,
     userProfile,
     focus,
     setFocus,
@@ -120,6 +121,23 @@ export default function DashboardPage() {
   const activeGoals = goals.filter(g => g.status !== "completed").slice(0, 4)
   const greetingHour = getHourForGreeting(userProfile.timezone)
   const greeting = getGreetingByHour(greetingHour)
+
+  if (isDashboardHydrating) {
+    return (
+      <div className="min-h-screen space-y-4 pb-8">
+        <div className="h-40 rounded-3xl border border-slate-700/50 bg-slate-900/40 animate-pulse" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-28 rounded-xl border border-slate-700/50 bg-slate-900/40 animate-pulse"
+            />
+          ))}
+        </div>
+        <div className="h-64 rounded-xl border border-slate-700/50 bg-slate-900/40 animate-pulse" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen space-y-8 pb-8">

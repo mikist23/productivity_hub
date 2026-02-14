@@ -55,7 +55,7 @@ interface RecommendationApiResponse {
 }
 
 export default function SkillsPage() {
-  const { skills } = useDashboard()
+  const { skills, isDashboardHydrating } = useDashboard()
   const { guard, authPrompt } = useGuardedAction("/dashboard/skills")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeSkillRef, setActiveSkillRef] = useState<{ categoryId: string; skillId: string } | null>(null)
@@ -188,6 +188,19 @@ export default function SkillsPage() {
   const openPrimaryLab = () => {
     const url = selectedTrack?.resources.labsHandsOn[0]?.url
     if (url) window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  if (isDashboardHydrating) {
+    return (
+      <div className="space-y-6">
+        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="h-80 rounded-xl bg-muted/40 animate-pulse" />
+          <div className="h-80 rounded-xl bg-muted/40 animate-pulse" />
+        </div>
+        <div className="h-96 rounded-xl bg-muted/40 animate-pulse" />
+      </div>
+    )
   }
 
   return (

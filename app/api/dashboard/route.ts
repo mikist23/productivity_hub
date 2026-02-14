@@ -32,6 +32,22 @@ const dashboardWriteSchema = dashboardSchema.extend({
   baseRevision: z.number().int().nonnegative().optional(),
 })
 
+function withNoStoreHeaders(response: NextResponse) {
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate")
+  response.headers.set("Pragma", "no-cache")
+  const existingVary = response.headers.get("Vary")
+  if (!existingVary) {
+    response.headers.set("Vary", "Cookie")
+  } else if (!existingVary.toLowerCase().includes("cookie")) {
+    response.headers.set("Vary", `${existingVary}, Cookie`)
+  }
+  return response
+}
+
+function jsonNoStore(body: unknown, init?: Parameters<typeof NextResponse.json>[1]) {
+  return withNoStoreHeaders(NextResponse.json(body, init))
+}
+
 function revisionMetadata(input: { revision?: unknown; updatedAt?: unknown }) {
   const revision = typeof input.revision === "number" && Number.isFinite(input.revision)
     ? Math.max(0, Math.floor(input.revision))
@@ -47,12 +63,12 @@ function revisionMetadata(input: { revision?: unknown; updatedAt?: unknown }) {
 
 export async function GET(req: NextRequest) {
   if (!isMongoConfigured()) {
-    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+    return jsonNoStore({ error: "MongoDB is not configured" }, { status: 503 })
   }
 
   const userId = await resolveRequestUserId(req)
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
@@ -60,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     const existing = await UserDashboard.findOne({ userId }).lean()
     if (!existing) {
-      return NextResponse.json({
+      return jsonNoStore({
         ...defaultCloudDashboardPayload,
         revision: { value: 0, updatedAt: null },
       })
@@ -68,39 +84,39 @@ export async function GET(req: NextRequest) {
 
     const parsed = dashboardSchema.safeParse(existing)
     if (!parsed.success) {
-      return NextResponse.json({
+      return jsonNoStore({
         ...defaultCloudDashboardPayload,
         revision: revisionMetadata(existing),
       })
     }
 
-    return NextResponse.json({
+    return jsonNoStore({
       ...parsed.data,
       revision: revisionMetadata(existing),
     })
   } catch (error) {
     const isDbError = isMongoConnectionError(error)
     if (isDbError) {
-      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+      return jsonNoStore({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
     }
-    return NextResponse.json({ error: "Unable to load dashboard right now. Please try again." }, { status: 500 })
+    return jsonNoStore({ error: "Unable to load dashboard right now. Please try again." }, { status: 500 })
   }
 }
 
 export async function PUT(req: NextRequest) {
   if (!isMongoConfigured()) {
-    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+    return jsonNoStore({ error: "MongoDB is not configured" }, { status: 503 })
   }
 
   const userId = await resolveRequestUserId(req)
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 })
   }
 
   const body = await req.json().catch(() => null)
   const parsed = dashboardWriteSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid dashboard payload" }, { status: 400 })
+    return jsonNoStore({ error: "Invalid dashboard payload" }, { status: 400 })
   }
 
   try {
@@ -128,7 +144,7 @@ export async function PUT(req: NextRequest) {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).lean()
 
-    return NextResponse.json({
+    return jsonNoStore({
       ok: true,
       mergeApplied: merged.mergeApplied,
       revision: revisionMetadata({ revision: merged.revision, updatedAt: updated?.updatedAt }),
@@ -137,32 +153,32 @@ export async function PUT(req: NextRequest) {
   } catch (error) {
     const isDbError = isMongoConnectionError(error)
     if (isDbError) {
-      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+      return jsonNoStore({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
     }
-    return NextResponse.json({ error: "Unable to save dashboard right now. Please try again." }, { status: 500 })
+    return jsonNoStore({ error: "Unable to save dashboard right now. Please try again." }, { status: 500 })
   }
 }
 
 export async function DELETE(req: NextRequest) {
   if (!isMongoConfigured()) {
-    return NextResponse.json({ error: "MongoDB is not configured" }, { status: 503 })
+    return jsonNoStore({ error: "MongoDB is not configured" }, { status: 503 })
   }
 
   const userId = await resolveRequestUserId(req)
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return jsonNoStore({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
     await connectToDatabase()
     await UserDashboard.deleteOne({ userId })
 
-    return NextResponse.json({ ok: true })
+    return jsonNoStore({ ok: true })
   } catch (error) {
     const isDbError = isMongoConnectionError(error)
     if (isDbError) {
-      return NextResponse.json({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
+      return jsonNoStore({ error: MONGO_UNAVAILABLE_ERROR }, { status: 503 })
     }
-    return NextResponse.json({ error: "Unable to reset cloud data right now. Please try again." }, { status: 500 })
+    return jsonNoStore({ error: "Unable to reset cloud data right now. Please try again." }, { status: 500 })
   }
 }

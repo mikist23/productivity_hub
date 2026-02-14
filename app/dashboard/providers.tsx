@@ -184,6 +184,7 @@ export interface Post {
 }
 
 export interface DashboardContextType {
+  isDashboardHydrating: boolean
   userProfile: UserProfile
   updateUserProfile: (profile: UserProfile) => void
   
@@ -500,12 +501,17 @@ function mergeAuthIdentityIntoProfile(profile: UserProfile, user: { name: string
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
+  const activeUserId = user?.id ?? null
+  const authIdentity = React.useMemo(
+    () => (user ? { name: user.name, email: user.email } : null),
+    [user?.email, user?.id, user?.name]
+  )
   const [userProfile, setUserProfile] = React.useState<UserProfile>(defaultProfile)
 
   React.useEffect(() => {
-    if (!user) return
-    setUserProfile((prev) => mergeAuthIdentityIntoProfile(prev, user))
-  }, [setUserProfile, user])
+    if (!authIdentity) return
+    setUserProfile((prev) => mergeAuthIdentityIntoProfile(prev, authIdentity))
+  }, [authIdentity, setUserProfile])
   const [skills, setSkills] = React.useState<SkillCategory[]>(emptySkillCategories)
   const [jobs, setJobs] = React.useState<JobApplication[]>(emptyJobs)
   const [focus, setFocusState] = React.useState("")
@@ -519,7 +525,27 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [posts, setPosts] = React.useState<Post[]>(emptyPosts)
   const [timerState, setTimerState] = React.useState<TimerState>(defaultTimerState)
   const [serverRevision, setServerRevision] = React.useState(0)
+  const [isDashboardHydrating, setIsDashboardHydrating] = React.useState(Boolean(user?.id))
   const cloudSyncRef = React.useRef({ loaded: false, skipNextSave: false })
+  const currentUserIdRef = React.useRef<string | null>(user?.id ?? null)
+  const hydrationRequestIdRef = React.useRef(0)
+
+  const resetDashboardState = React.useCallback((authUser?: { name: string; email: string } | null) => {
+    setUserProfile(mergeAuthIdentityIntoProfile(defaultProfile, authUser ?? null))
+    setSkills(emptySkillCategories)
+    setJobs(emptyJobs)
+    setFocusState(defaultCloudDashboardPayload.focus)
+    setTasks(emptyTasks)
+    setFocusSessions(emptyFocusSessions)
+    setGoals(emptyGoals)
+    setRecentActivities(emptyActivities)
+    setMapPins(emptyMapPins)
+    setMapViewState(defaultMapView)
+    setRecipes(emptyRecipes)
+    setPosts(emptyPosts)
+    setTimerState(defaultTimerState)
+    setServerRevision(0)
+  }, [])
 
   const cloudPayload = React.useMemo<CloudDashboardPayload>(
     () => ({
@@ -541,24 +567,39 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   )
 
   React.useEffect(() => {
-    if (!user?.id) return
-    let cancelled = false
+    const requestId = ++hydrationRequestIdRef.current
+    currentUserIdRef.current = activeUserId
+
     cloudSyncRef.current.loaded = false
+    cloudSyncRef.current.skipNextSave = false
+    resetDashboardState(authIdentity)
+
+    if (!activeUserId) {
+      setIsDashboardHydrating(false)
+      return
+    }
+
+    setIsDashboardHydrating(true)
 
     const hydrateFromCloud = async () => {
       try {
         const res = await fetch("/api/dashboard", {
           credentials: "same-origin",
+          cache: "no-store",
         })
+
+        const isActiveRequest =
+          currentUserIdRef.current === activeUserId && hydrationRequestIdRef.current === requestId
+        if (!isActiveRequest) return
         if (!res.ok) return
 
         const data = (await res.json()) as CloudDashboardResponse
-        if (cancelled) return
+        if (currentUserIdRef.current !== activeUserId || hydrationRequestIdRef.current !== requestId) return
 
         cloudSyncRef.current.skipNextSave = true
         setServerRevision(asRevision(data.revision))
         const hydratedProfile = normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile)
-        setUserProfile(mergeAuthIdentityIntoProfile(hydratedProfile, user))
+        setUserProfile(mergeAuthIdentityIntoProfile(hydratedProfile, authIdentity))
         setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
         setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
         setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
@@ -572,38 +613,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setPosts(asArray<Post>(data.posts, emptyPosts))
         setTimerState(asTimerState(data.timerState))
       } catch {
-        // Keep local data when cloud read fails.
+        // Keep cleared defaults when cloud read fails.
       } finally {
-        if (!cancelled) {
-          cloudSyncRef.current.loaded = true
-        }
+        const isActiveRequest =
+          currentUserIdRef.current === activeUserId && hydrationRequestIdRef.current === requestId
+        if (!isActiveRequest) return
+        cloudSyncRef.current.loaded = true
+        setIsDashboardHydrating(false)
       }
     }
 
     hydrateFromCloud()
-
-    return () => {
-      cancelled = true
-    }
-  }, [
-    setFocusSessions,
-    setFocusState,
-    setGoals,
-    setJobs,
-    setMapPins,
-    setMapViewState,
-    setPosts,
-    setRecentActivities,
-    setRecipes,
-    setSkills,
-    setTasks,
-    setTimerState,
-    setUserProfile,
-    user,
-  ])
+  }, [activeUserId, authIdentity, resetDashboardState])
 
   React.useEffect(() => {
-    if (!user?.id || !cloudSyncRef.current.loaded) return
+    if (!activeUserId || !cloudSyncRef.current.loaded || isDashboardHydrating) return
     if (cloudSyncRef.current.skipNextSave) {
       cloudSyncRef.current.skipNextSave = false
       return
@@ -612,6 +636,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const controller = new AbortController()
     const timeout = setTimeout(async () => {
       try {
+        if (currentUserIdRef.current !== activeUserId) return
         await fetch("/api/dashboard", {
           method: "PUT",
           headers: {
@@ -623,6 +648,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           }),
           signal: controller.signal,
           credentials: "same-origin",
+          cache: "no-store",
         })
           .then(async (response) => {
             if (!response.ok) return null
@@ -633,12 +659,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           })
           .then((data) => {
             if (!data) return
+            if (currentUserIdRef.current !== activeUserId) return
             const nextRevision = asRevision(data.revision)
             setServerRevision(nextRevision)
 
             if (data.mergeApplied) {
               cloudSyncRef.current.skipNextSave = true
-              setUserProfile(normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile))
+              const hydratedProfile = normalizeUserProfile(data.userProfile ?? defaultCloudDashboardPayload.userProfile)
+              setUserProfile(mergeAuthIdentityIntoProfile(hydratedProfile, authIdentity))
               setSkills(asArray<SkillCategory>(data.skills, emptySkillCategories))
               setJobs(asArray<JobApplication>(data.jobs, emptyJobs))
               setFocusState(typeof data.focus === "string" ? data.focus : defaultCloudDashboardPayload.focus)
@@ -662,7 +690,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       controller.abort()
       clearTimeout(timeout)
     }
-  }, [cloudPayload, serverRevision, user?.id])
+  }, [activeUserId, authIdentity, cloudPayload, isDashboardHydrating, serverRevision])
 
   // --- Helper to Log Activity ---
   const logActivity = (text: string, type: ActivityLog["type"]) => {
@@ -1328,6 +1356,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
     return (
     <DashboardContext.Provider value={{
+      isDashboardHydrating,
       userProfile,
       updateUserProfile,
       skills,

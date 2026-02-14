@@ -12,7 +12,7 @@ import { GoalDetailsModal } from "@/components/dashboard/GoalDetailsModal"
 import { AuthPromptModal, useAuthPrompt } from "@/components/dashboard/AuthPromptModal"
 
 export default function GoalsPage() {
-  const { goals, deleteGoal, addGoal } = useDashboard()
+  const { goals, deleteGoal, addGoal, isDashboardHydrating } = useDashboard()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null)
   const { isOpen: isAuthPromptOpen, action: authAction, nextPath: authNextPath, promptAuth, closePrompt } = useAuthPrompt()
@@ -22,6 +22,19 @@ export default function GoalsPage() {
     { id: "inprogress", label: "In Progress", icon: Clock },
     { id: "completed", label: "Completed", icon: CheckCircle2 },
   ] as const
+
+  if (isDashboardHydrating) {
+    return (
+      <div className="space-y-6">
+        <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+        <div className="grid gap-6 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-72 rounded-xl bg-muted/40 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">

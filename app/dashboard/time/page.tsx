@@ -41,6 +41,7 @@ const itemVariants = {
 
 export default function TimePage() {
   const { 
+    isDashboardHydrating,
     focusSessions, 
     addFocusSession, 
     goals,
@@ -275,6 +276,20 @@ export default function TimePage() {
         setGoalDailyTargets(selectedGoal.id, [...existingTargets, newTarget])
       })
     }
+  }
+
+  if (isDashboardHydrating) {
+    return (
+      <div className="min-h-screen p-4 md:p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="h-20 rounded-2xl bg-slate-800/50 animate-pulse" />
+          <div className="grid gap-6 lg:grid-cols-12">
+            <div className="h-96 rounded-2xl bg-slate-800/50 animate-pulse lg:col-span-7" />
+            <div className="h-96 rounded-2xl bg-slate-800/50 animate-pulse lg:col-span-5" />
+          </div>
+        </div>
+      </div>
+    )
   }
   
   return (
