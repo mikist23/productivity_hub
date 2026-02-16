@@ -1,4 +1,4 @@
-# 📱 Productivity App - User Guide
+﻿# 📱 GoalPilot - User Guide
 
 ## 🚀 Quick Start
 

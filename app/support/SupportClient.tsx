@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
@@ -142,7 +142,7 @@ export function SupportClient() {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl font-semibold tracking-tight">Support Productivity Hub</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Support GoalPilot</h1>
           <p className="text-slate-400">
             Choose a payment method, then continue on the provider checkout page.
           </p>
@@ -279,3 +279,4 @@ export function SupportClient() {
     </div>
   )
 }
+

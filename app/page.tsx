@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useState } from "react"
@@ -106,7 +106,7 @@ export default function LandingPage() {
           >
             <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
               <AppLogo size="md" priority />
-              <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
+              <span className="font-bold text-xl tracking-tight">GoalPilot</span>
             </Link>
           </motion.div>
           
@@ -164,7 +164,7 @@ export default function LandingPage() {
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
               Your personal{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-violet-400">
-                productivity hub
+                GoalPilot
               </span>
             </h1>
             
@@ -420,7 +420,7 @@ export default function LandingPage() {
                     <AppLogo size="lg" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold tracking-tight text-white">Productivity Hub</p>
+                    <p className="text-lg font-semibold tracking-tight text-white">GoalPilot</p>
                     <p className="text-sm text-cyan-100/80">Plan clearly. Execute consistently.</p>
                   </div>
                 </div>
@@ -489,7 +489,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-10">
               <div className="space-y-1">
-                <p className="text-sm text-slate-400">Copyright {new Date().getFullYear()} Productivity Hub. All rights reserved.</p>
+                <p className="text-sm text-slate-400">Copyright {new Date().getFullYear()} GoalPilot. All rights reserved.</p>
                 <p className="text-xs text-slate-500">Built for practical, everyday execution.</p>
               </div>
               <SupportButton
@@ -527,7 +527,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Try the Demo</h3>
-                    <p className="text-sm text-slate-400">Experience Productivity Hub with sample data</p>
+                    <p className="text-sm text-slate-400">Experience GoalPilot with sample data</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setShowDemoModal(false)}>
@@ -592,5 +592,6 @@ export default function LandingPage() {
     </div>
   )
 }
+
 
 

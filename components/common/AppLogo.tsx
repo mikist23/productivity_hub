@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import Image from "next/image"
-import productivityLogo from "@/lib/images/Productivity_hub.png"
+import goalPilotLogo from "@/lib/images/Goal Pilot.png"
 import { cn } from "@/lib/utils"
 
 type AppLogoProps = {
@@ -33,11 +33,12 @@ export function AppLogo({
       )}
     >
       <Image
-        src={productivityLogo}
-        alt="Productivity Hub logo"
+        src={goalPilotLogo}
+        alt="GoalPilot logo"
         className={cn("h-full w-full object-contain", imageClassName)}
         priority={priority}
       />
     </div>
   )
 }
+

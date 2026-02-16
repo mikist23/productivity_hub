@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import Link from "next/link"
@@ -24,7 +24,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-6 border-b border-border/50">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity">
           <AppLogo size="sm" />
-          <span>Productivity Hub</span>
+          <span>GoalPilot</span>
         </Link>
       </div>
       <nav className="space-y-1 p-4 overflow-y-auto">
@@ -90,3 +90,4 @@ export function Sidebar() {
     </motion.aside>
   )
 }
+

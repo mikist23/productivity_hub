@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -23,7 +23,7 @@ export function MobileNav() {
         <div className="flex items-center justify-between px-4 h-14">
           <Link href="/" className="flex items-center gap-2 font-bold tracking-tight hover:opacity-90 transition-opacity">
             <AppLogo size="sm" />
-            <span>Productivity Hub</span>
+            <span>GoalPilot</span>
           </Link>
           <Button
             variant="ghost"
@@ -121,3 +121,4 @@ export function MobileNav() {
     </>
   )
 }
+

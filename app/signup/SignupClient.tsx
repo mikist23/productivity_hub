@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
@@ -108,7 +108,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
               <AppLogo size="lg" priority />
-              <span className="text-3xl font-bold text-white">Productivity Hub</span>
+              <span className="text-3xl font-bold text-white">GoalPilot</span>
             </div>
             
             {/* Tagline */}
@@ -159,7 +159,7 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <AppLogo size="md" priority />
-            <span className="text-2xl font-bold">Productivity Hub</span>
+            <span className="text-2xl font-bold">GoalPilot</span>
           </div>
 
           <Card className="border-border/50 shadow-2xl shadow-black/20 bg-card/50 backdrop-blur-sm">
@@ -353,5 +353,6 @@ export function SignupClient({ nextPath }: { nextPath?: string }) {
     </div>
   )
 }
+
 
 

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 type BackupV1 = {
   version: 1
   exportedAt: string
-  app: "MapMonet" | "Productivity Hub"
+  app: "MapMonet" | "Productivity Hub" | "GoalPilot"
   data: {
     profile: unknown
     skills: unknown
@@ -85,7 +85,7 @@ export default function SettingsPage() {
   const buildLocalBackup = (): BackupV1 => ({
     version: 1,
     exportedAt: new Date().toISOString(),
-    app: "Productivity Hub",
+    app: "GoalPilot",
     data: {
       profile: userProfile,
       skills,
@@ -160,7 +160,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `productivity-hub-backup-${safeDate}.json`
+    a.download = `goalpilot-backup-${safeDate}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -184,9 +184,12 @@ export default function SettingsPage() {
       const text = await file.text()
       const parsed = JSON.parse(text) as BackupV1
 
-      const isSupportedApp = parsed?.app === "MapMonet" || parsed?.app === "Productivity Hub"
+      const isSupportedApp =
+        parsed?.app === "MapMonet" ||
+        parsed?.app === "Productivity Hub" ||
+        parsed?.app === "GoalPilot"
       if (!parsed || !isSupportedApp || parsed.version !== 1 || !parsed.data) {
-        throw new Error("Invalid backup file (expected Productivity Hub v1 backup).")
+        throw new Error("Invalid backup file (expected GoalPilot v1 backup).")
       }
 
       await applyBackup(parsed)
@@ -218,7 +221,7 @@ export default function SettingsPage() {
   const clearAllData = () => {
     setCloudStatus(null)
     const ok = window.confirm(
-      "This will permanently delete all Productivity Hub cloud data for this account. Continue?"
+      "This will permanently delete all GoalPilot cloud data for this account. Continue?"
     )
     if (!ok) return
 
@@ -341,3 +344,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+

@@ -1,6 +1,6 @@
-#!/bin/bash
+﻿#!/bin/bash
 
-echo "🚀 Productivity App - Quick Deployment Script"
+echo "🚀 GoalPilot - Quick Deployment Script"
 echo "=========================================="
 
 # Check if we're in the right directory
@@ -24,7 +24,7 @@ if [ $? -eq 0 ]; then
     echo "3. git push origin main"
     echo "4. Deploy to Vercel (or run 'vercel --prod')"
     echo ""
-    echo "🎉 Your productivity app is ready to launch!"
+    echo "🎉 Your GoalPilot is ready to launch!"
 else
     echo "❌ Build failed. Please check the errors above."
     exit 1

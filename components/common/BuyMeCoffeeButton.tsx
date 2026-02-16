@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { Coffee } from "lucide-react"
@@ -26,7 +26,7 @@ export function BuyMeCoffeeButton({
   if (!coffeeUrl) return null
 
   const isIconOnly = size === "icon"
-  const buttonLabel = isIconOnly ? "Support Productivity Hub on Buy Me a Coffee" : label
+  const buttonLabel = isIconOnly ? "Support GoalPilot on Buy Me a Coffee" : label
 
   return (
     <Button
@@ -46,3 +46,4 @@ export function BuyMeCoffeeButton({
     </Button>
   )
 }
+

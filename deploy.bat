@@ -1,5 +1,5 @@
-@echo off
-title Productivity App - Quick Deployment
+﻿@echo off
+title GoalPilot - Quick Deployment
 echo ==========================================
 echo.
 
@@ -36,6 +36,6 @@ echo 2. git commit -m "Ready for deployment"
 echo 3. git push origin main
 echo 4. Deploy to Vercel ^(or run 'vercel --prod'^)
 echo.
-echo 🎉 Your productivity app is ready to launch!
+echo 🎉 Your GoalPilot is ready to launch!
 echo.
 pause

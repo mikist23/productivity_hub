@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
@@ -128,13 +128,13 @@ export function LoginClient({
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
               <AppLogo size="lg" priority />
-              <span className="text-3xl font-bold text-white">Productivity Hub</span>
+              <span className="text-3xl font-bold text-white">GoalPilot</span>
             </div>
             
             {/* Tagline */}
             <h1 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
               Your Personal
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400"> Productivity Hub</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400"> GoalPilot</span>
             </h1>
             
             <p className="text-lg text-slate-400 mb-10 max-w-lg">
@@ -179,7 +179,7 @@ export function LoginClient({
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <AppLogo size="md" priority />
-            <span className="text-2xl font-bold">Productivity Hub</span>
+            <span className="text-2xl font-bold">GoalPilot</span>
           </div>
 
           <Card className="border-border/50 shadow-2xl shadow-black/20 bg-card/50 backdrop-blur-sm">
@@ -310,5 +310,6 @@ export function LoginClient({
     </div>
   )
 }
+
 
 

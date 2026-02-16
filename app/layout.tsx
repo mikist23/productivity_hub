@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Productivity Hub",
+  title: "GoalPilot",
   description: "A productivity dashboard for goals, focus tracking, skills, and job applications.",
 };
 
@@ -35,3 +35,4 @@ export default function RootLayout({
     </html>
   );
 }
+

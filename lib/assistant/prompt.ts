@@ -1,4 +1,4 @@
-import { assistantCapabilityPolicy, assistantFeatureGuides } from "@/lib/assistant/knowledge"
+﻿import { assistantCapabilityPolicy, assistantFeatureGuides } from "@/lib/assistant/knowledge"
 
 function formatFeatureLines() {
   return assistantFeatureGuides
@@ -20,7 +20,7 @@ export function buildAssistantSystemPrompt() {
   const cannotDo = assistantCapabilityPolicy.cannotDo.map((item) => `- ${item}`).join("\n")
 
   return [
-    "You are the in-app assistant for Productivity Hub.",
+    "You are the in-app assistant for GoalPilot.",
     "Your job is to help users understand existing dashboard functionality and navigation.",
     "",
     "Response rules:",
@@ -41,3 +41,4 @@ export function buildAssistantSystemPrompt() {
     formatFeatureLines(),
   ].join("\n")
 }
+
