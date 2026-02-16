@@ -19,12 +19,20 @@ const PLATFORM_ENV_KEYS: Record<SocialPlatform, string> = {
 
 const warnedInvalid = new Set<string>()
 
-function isValidSocialUrl(platform: SocialPlatform, rawUrl: string): boolean {
+function normalizeSocialUrl(rawUrl: string): string | null {
   const trimmed = rawUrl.trim()
-  if (!trimmed) return false
+  if (!trimmed) return null
+  if (trimmed.includes("<") || trimmed.includes(">")) return null
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+function isValidSocialUrl(platform: SocialPlatform, rawUrl: string): boolean {
+  const normalized = normalizeSocialUrl(rawUrl)
+  if (!normalized) return false
 
   try {
-    const parsed = new URL(trimmed)
+    const parsed = new URL(normalized)
     if (parsed.protocol !== "https:") return false
     const host = parsed.hostname.toLowerCase()
     return PLATFORM_HOSTS[platform].has(host)
@@ -38,8 +46,8 @@ function getPlatformUrl(platform: SocialPlatform): string | null {
   const raw = process.env[envKey]
   if (!raw || raw.trim().length === 0) return null
 
-  const trimmed = raw.trim()
-  if (!isValidSocialUrl(platform, trimmed)) {
+  const normalized = normalizeSocialUrl(raw)
+  if (!normalized || !isValidSocialUrl(platform, normalized)) {
     if (process.env.NODE_ENV !== "production" && !warnedInvalid.has(envKey)) {
       warnedInvalid.add(envKey)
       console.warn(`Invalid ${envKey}. Expected an https URL for ${platform}.`)
@@ -47,7 +55,7 @@ function getPlatformUrl(platform: SocialPlatform): string | null {
     return null
   }
 
-  return trimmed
+  return normalized
 }
 
 export function getSocialLinks(): SocialLink[] {

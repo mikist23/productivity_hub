@@ -407,37 +407,44 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-800/60 bg-slate-950/90">
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_12%_12%,rgba(99,102,241,0.18),transparent_34%),radial-gradient(circle_at_82%_88%,rgba(236,72,153,0.16),transparent_30%)]" />
+      <footer className="relative border-t border-slate-800/60 bg-slate-950/95">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_82%_82%,rgba(99,102,241,0.18),transparent_34%)]" />
         <div className="relative mx-auto max-w-7xl px-6 py-12">
-          <div className="rounded-3xl border border-slate-700/60 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_30px_90px_-40px_rgba(76,29,149,0.85)] md:p-8">
-            <div className="grid gap-8 md:grid-cols-3">
-              <div className="space-y-4 md:col-span-1">
+          <div className="overflow-hidden rounded-[32px] border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(15,23,42,0.92)_0%,rgba(10,17,35,0.94)_45%,rgba(2,6,23,0.97)_100%)] shadow-[0_40px_120px_-55px_rgba(14,165,233,0.6)]">
+            <div className="grid gap-10 border-b border-slate-700/60 px-6 py-8 md:grid-cols-[1.4fr_1fr_1fr] md:px-10">
+              <div className="space-y-5">
                 <div className="flex items-center gap-3">
-                  <AppLogo size="lg" />
+                  <div className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 p-2 shadow-[0_0_25px_-12px_rgba(56,189,248,0.8)]">
+                    <AppLogo size="lg" />
+                  </div>
                   <div>
-                    <p className="font-semibold text-lg text-white">Productivity Hub</p>
-                    <p className="text-sm text-slate-400">Plan clearly. Execute consistently.</p>
+                    <p className="text-lg font-semibold tracking-tight text-white">Productivity Hub</p>
+                    <p className="text-sm text-cyan-100/80">Plan clearly. Execute consistently.</p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-400">
-                  A focused workspace for goals, time tracking, skills, and career momentum.
+                <p className="max-w-md text-sm leading-relaxed text-slate-300">
+                  A focused workspace for goals, time tracking, skills, and career momentum with a practical workflow you can run every day.
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-300">Goal Planning</span>
+                  <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-300">Focus Tracking</span>
+                  <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-300">Career Pipeline</span>
+                </div>
               </div>
 
-              <div className="space-y-3 md:col-span-1">
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">Product</p>
-                <ul className="space-y-2 text-sm text-slate-400">
-                  <li>Goals and Roadmaps</li>
-                  <li>Time and Focus Tracking</li>
-                  <li>Skills and Job Pipeline</li>
+              <div className="space-y-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Product</p>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300" /> Goals and Roadmaps</li>
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300" /> Time and Focus Tracking</li>
+                  <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300" /> Skills and Job Pipeline</li>
                 </ul>
               </div>
 
-              <div className="space-y-3 md:col-span-1">
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">Connect</p>
+              <div className="space-y-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Connect</p>
                 {socialLinks.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid gap-2">
                     {socialLinks.map((social) => {
                       const icon =
                         social.platform === "github"
@@ -458,32 +465,35 @@ export default function LandingPage() {
                           href={social.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800"
+                          className="group inline-flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200 transition-all hover:border-cyan-400/60 hover:bg-slate-800"
                           aria-label={`Open ${label}`}
                         >
-                          {icon}
-                          <span>{label}</span>
+                          <span className="inline-flex items-center gap-2">
+                            {icon}
+                            <span>{label}</span>
+                          </span>
+                          <ArrowRight className="h-3.5 w-3.5 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-300" />
                         </a>
                       )
                     })}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">Add social links in environment variables to display them here.</p>
+                  <p className="text-sm text-slate-400">
+                    No social links detected. Set `NEXT_PUBLIC_SOCIAL_*` URLs and restart/redeploy to refresh client env values.
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-1 text-sm text-slate-500">
-                <p>Copyright {new Date().getFullYear()} Productivity Hub. All rights reserved.</p>
-                <p className="text-xs text-slate-600">Built for practical, everyday execution.</p>
+            <div className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-10">
+              <div className="space-y-1">
+                <p className="text-sm text-slate-400">Copyright {new Date().getFullYear()} Productivity Hub. All rights reserved.</p>
+                <p className="text-xs text-slate-500">Built for practical, everyday execution.</p>
               </div>
               <SupportButton
                 variant="outline"
                 size="sm"
-                className="border-slate-600 hover:bg-slate-800 text-slate-200"
+                className="border-cyan-400/40 bg-cyan-500/5 text-cyan-100 hover:bg-cyan-500/10"
                 label="Support"
               />
             </div>
