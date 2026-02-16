@@ -43,7 +43,14 @@ function isValidSocialUrl(platform: SocialPlatform, rawUrl: string): boolean {
 
 function getPlatformUrl(platform: SocialPlatform): string | null {
   const envKey = PLATFORM_ENV_KEYS[platform]
-  const raw = process.env[envKey]
+  // IMPORTANT: in client bundles, NEXT_PUBLIC vars must be accessed via static keys.
+  // Dynamic process.env[envKey] is not reliably inlined during hydration.
+  const raw =
+    platform === "github"
+      ? process.env.NEXT_PUBLIC_SOCIAL_GITHUB_URL
+      : platform === "x"
+        ? process.env.NEXT_PUBLIC_SOCIAL_X_URL
+        : process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN_URL
   if (!raw || raw.trim().length === 0) return null
 
   const normalized = normalizeSocialUrl(raw)
