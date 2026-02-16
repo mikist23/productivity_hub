@@ -133,8 +133,8 @@ export function LoginClient({
             
             {/* Tagline */}
             <h1 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
-              Your Personal
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400"> GoalPilot</span>
+              Your personal
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400"> productivity hub</span>
             </h1>
             
             <p className="text-lg text-slate-400 mb-10 max-w-lg">

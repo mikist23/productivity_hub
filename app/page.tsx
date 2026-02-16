@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { motion, useReducedMotion } from "framer-motion"
 import {
   ArrowRight,
   BookOpen,
@@ -18,7 +19,6 @@ import {
   Sparkles,
   Target,
   Twitter,
-  X,
   Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -74,18 +74,30 @@ const features = [
 ] as const
 
 export default function LandingPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const shouldReduceMotion = useReducedMotion()
-  const [showDemoModal, setShowDemoModal] = useState(false)
   const [isLoadingDemo, setIsLoadingDemo] = useState(false)
   const socialLinks = getSocialLinks()
 
-  const handleTryDemo = async () => {
-    setIsLoadingDemo(true)
-    // Demo data will be loaded by the dashboard
-    await new Promise(resolve => setTimeout(resolve, 500))
-    window.location.href = "/dashboard"
+  const navigateWithFallback = (path: string) => {
+    router.push(path)
+    window.setTimeout(() => {
+      if (window.location.pathname !== path) {
+        window.location.assign(path)
+      }
+    }, 450)
   }
+
+  const handleTryDemo = () => {
+    if (isLoadingDemo) return
+    setIsLoadingDemo(true)
+    navigateWithFallback("/dashboard")
+  }
+
+  const goToDashboard = () => navigateWithFallback("/dashboard")
+  const goToSignup = () => navigateWithFallback("/signup")
+  const goToLogin = () => navigateWithFallback("/login")
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
@@ -116,31 +128,26 @@ export default function LandingPage() {
             className="flex items-center gap-2"
           >
             {user ? (
-              <Link href="/dashboard">
-                <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
-                  Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
+              <Button onClick={goToDashboard} className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
+                Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             ) : (
               <>
                 <Button 
                   variant="ghost" 
-                  onClick={() => setShowDemoModal(true)}
+                  onClick={handleTryDemo}
+                  disabled={isLoadingDemo}
                   className="text-slate-300 hover:text-white hover:bg-slate-800"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Try Demo
+                  {isLoadingDemo ? "Opening..." : "Try Demo"}
                 </Button>
-                <Link href="/login">
-                  <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800">
-                    Log in
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
-                    Get started <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
+                <Button variant="ghost" onClick={goToLogin} className="text-slate-300 hover:text-white hover:bg-slate-800">
+                  Log in
+                </Button>
+                <Button onClick={goToSignup} className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0">
+                  Get started <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
               </>
             )}
           </motion.div>
@@ -164,7 +171,7 @@ export default function LandingPage() {
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
               Your personal{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-violet-400">
-                GoalPilot
+                productivity hub
               </span>
             </h1>
             
@@ -175,26 +182,32 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               {user ? (
-                <Link href="/dashboard" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8">
-                    Open Dashboard <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  onClick={goToDashboard}
+                  className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8"
+                >
+                  Open Dashboard <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
               ) : (
                 <>
                   <Button 
                     size="lg" 
-                    onClick={() => setShowDemoModal(true)}
+                    onClick={handleTryDemo}
+                    disabled={isLoadingDemo}
                     className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8"
                   >
                     <Play className="h-5 w-5 mr-2" />
-                    Try Demo
+                    {isLoadingDemo ? "Opening..." : "Try Demo"}
                   </Button>
-                  <Link href="/signup" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full border-slate-700 hover:bg-slate-800 text-lg px-8">
-                      Create account
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={goToSignup}
+                    className="w-full sm:w-auto border-slate-700 hover:bg-slate-800 text-lg px-8"
+                  >
+                    Create account
+                  </Button>
                 </>
               )}
             </div>
@@ -223,13 +236,13 @@ export default function LandingPage() {
               animate={
                 shouldReduceMotion
                   ? undefined
-                  : { x: [0, -14, 14, 0], rotateZ: [0, -0.45, 0.45, 0] }
+                  : { y: [0, -8, 0], scale: [1, 1.01, 1] }
               }
               transition={
                 shouldReduceMotion
                   ? undefined
                   : {
-                      duration: 9,
+                      duration: 6.5,
                       ease: "easeInOut",
                       repeat: Number.POSITIVE_INFINITY,
                     }
@@ -240,13 +253,13 @@ export default function LandingPage() {
                   <>
                     <motion.div
                       className="pointer-events-none absolute -left-1/3 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-violet-400/20 to-transparent blur-2xl"
-                      animate={{ x: ["-55%", "180%"] }}
-                      transition={{ duration: 7.2, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+                      animate={{ x: ["-65%", "190%"] }}
+                      transition={{ duration: 6.8, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }}
                     />
                     <motion.div
                       className="pointer-events-none absolute -right-1/3 top-0 h-full w-1/2 bg-gradient-to-l from-transparent via-pink-400/15 to-transparent blur-2xl"
-                      animate={{ x: ["40%", "-175%"] }}
-                      transition={{ duration: 8.8, delay: 0.8, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+                      animate={{ x: ["55%", "-185%"] }}
+                      transition={{ duration: 7.4, delay: 0.6, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }}
                     />
                   </>
                 )}
@@ -256,12 +269,12 @@ export default function LandingPage() {
                     <div className="flex items-center gap-3">
                       <motion.div
                         className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center"
-                        animate={shouldReduceMotion ? undefined : { rotate: [0, -6, 6, 0], scale: [1, 1.04, 1] }}
+                        animate={shouldReduceMotion ? undefined : { scale: [1, 1.06, 1], rotate: [0, -2, 0] }}
                         transition={
                           shouldReduceMotion
                             ? undefined
                             : {
-                                duration: 4.8,
+                                duration: 3.2,
                                 ease: "easeInOut",
                                 repeat: Number.POSITIVE_INFINITY,
                               }
@@ -302,8 +315,8 @@ export default function LandingPage() {
                     {!shouldReduceMotion && (
                       <motion.div
                         className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/45 to-transparent"
-                        animate={{ x: ["-60%", "310%"] }}
-                        transition={{ duration: 2.8, ease: "linear", repeat: Number.POSITIVE_INFINITY, delay: 1.2 }}
+                        animate={{ x: ["-80%", "320%"] }}
+                        transition={{ duration: 3.6, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY, delay: 0.9 }}
                       />
                     )}
                   </div>
@@ -317,15 +330,16 @@ export default function LandingPage() {
                       <motion.div
                         key={i}
                         className="text-center p-3 rounded-xl bg-slate-800/50"
-                        animate={shouldReduceMotion ? undefined : { y: [0, -4, 0], scale: [1, 1.02, 1] }}
+                        initial={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+                        animate={shouldReduceMotion ? undefined : { opacity: 1, y: [0, -2, 0] }}
                         transition={
                           shouldReduceMotion
                             ? undefined
                             : {
-                                duration: 4,
+                                duration: 3.2,
                                 ease: "easeInOut",
                                 repeat: Number.POSITIVE_INFINITY,
-                                delay: 0.25 + i * 0.2,
+                                delay: 0.2 + i * 0.12,
                               }
                         }
                       >
@@ -391,17 +405,21 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   size="lg"
-                  onClick={() => setShowDemoModal(true)}
+                  onClick={handleTryDemo}
+                  disabled={isLoadingDemo}
                   className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 text-lg px-8"
                 >
                   <Play className="h-5 w-5 mr-2" />
-                  Try Demo
+                  {isLoadingDemo ? "Opening..." : "Try Demo"}
                 </Button>
-                <Link href="/signup">
-                  <Button size="lg" variant="outline" className="border-slate-600 hover:bg-slate-800 text-lg px-8">
-                    Create Account
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={goToSignup}
+                  className="border-slate-600 hover:bg-slate-800 text-lg px-8"
+                >
+                  Create Account
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -503,92 +521,6 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Demo Modal */}
-      <AnimatePresence>
-        {showDemoModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowDemoModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-6"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 flex items-center justify-center">
-                    <Play className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Try the Demo</h3>
-                    <p className="text-sm text-slate-400">Experience GoalPilot with sample data</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setShowDemoModal(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-medium">Sample Goals</div>
-                    <div className="text-sm text-slate-400">Pre-populated with realistic goals like &ldquo;Learn Flutter&rdquo; and &ldquo;Exercise Daily&rdquo;</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-medium">Time Tracking</div>
-                    <div className="text-sm text-slate-400">Try the timer with daily targets and progress tracking</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-medium">No Signup Required</div>
-                    <div className="text-sm text-slate-400">Jump right in and explore all features</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 space-y-3">
-                <Button 
-                  className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 border-0 h-12"
-                  onClick={handleTryDemo}
-                  disabled={isLoadingDemo}
-                >
-                  {isLoadingDemo ? (
-                    <>
-                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      Loading Demo...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Demo
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full border-slate-700 hover:bg-slate-800"
-                  onClick={() => setShowDemoModal(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
