@@ -104,8 +104,10 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <AppLogo size="md" priority />
-            <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
+            <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+              <AppLogo size="md" priority />
+              <span className="font-bold text-xl tracking-tight">Productivity Hub</span>
+            </Link>
           </motion.div>
           
           <motion.div 

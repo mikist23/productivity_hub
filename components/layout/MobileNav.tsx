@@ -21,10 +21,10 @@ export function MobileNav() {
     <>
       <header className="lg:hidden sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2 font-bold tracking-tight">
+          <Link href="/" className="flex items-center gap-2 font-bold tracking-tight hover:opacity-90 transition-opacity">
             <AppLogo size="sm" />
             <span>Productivity Hub</span>
-          </div>
+          </Link>
           <Button
             variant="ghost"
             size="icon"

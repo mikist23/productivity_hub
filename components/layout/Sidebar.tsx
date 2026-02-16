@@ -22,10 +22,10 @@ export function Sidebar() {
       className="hidden w-64 border-r border-border/50 bg-background/80 backdrop-blur-xl lg:flex flex-col h-screen sticky top-0"
     >
       <div className="flex h-16 items-center px-6 border-b border-border/50">
-        <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity">
           <AppLogo size="sm" />
           <span>Productivity Hub</span>
-        </div>
+        </Link>
       </div>
       <nav className="space-y-1 p-4 overflow-y-auto">
         {navItems.map((item) => {
