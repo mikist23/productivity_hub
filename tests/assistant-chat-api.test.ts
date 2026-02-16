@@ -30,8 +30,9 @@ function makeRequest(body: unknown) {
 describe("assistant chat API", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.OPENAI_API_KEY = "test-key"
-    process.env.OPENAI_MODEL = "gpt-4.1-mini"
+    process.env.GEMINI_API_KEY = "test-key"
+    process.env.GEMINI_MODEL = "gemini-2.5-flash"
+    process.env.GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
   })
 
   it("rejects unauthenticated users", async () => {
@@ -50,9 +51,9 @@ describe("assistant chat API", () => {
     expect(response.status).toBe(400)
   })
 
-  it("returns 503 when OpenAI key is missing", async () => {
+  it("returns 503 when Gemini key is missing", async () => {
     resolveRequestUserIdMock.mockResolvedValueOnce("user-no-key")
-    delete process.env.OPENAI_API_KEY
+    delete process.env.GEMINI_API_KEY
 
     const response = await POST(makeRequest({ messages: [{ role: "user", content: "Hi" }] }) as any)
 
@@ -71,7 +72,7 @@ describe("assistant chat API", () => {
 
     expect(response.status).toBe(200)
     expect(payload.reply).toContain("/dashboard/time")
-    expect(payload.model).toBe("gpt-4.1-mini")
+    expect(payload.model).toBe("gemini-2.5-flash")
     expect(payload.usage.total_tokens).toBe(23)
   })
 
@@ -100,8 +101,8 @@ describe("assistant chat API", () => {
     expect(rateLimited.status).toBe(429)
   })
 
-  it("maps OpenAI insufficient quota errors to 429", async () => {
-    resolveRequestUserIdMock.mockResolvedValueOnce("user-openai-rate")
+  it("maps Gemini insufficient quota errors to 429", async () => {
+    resolveRequestUserIdMock.mockResolvedValueOnce("user-gemini-rate")
     mockCreate.mockRejectedValueOnce({
       status: 429,
       code: "insufficient_quota",
