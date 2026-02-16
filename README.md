@@ -141,6 +141,38 @@ Manual UI QA checklist:
 - Clear chat resets panel state.
 - Confirm widget remains below critical modal stack (`z-[100]`).
 
+## Web Analytics (Vercel)
+
+This project is configured for Vercel Web Analytics page views using `@vercel/analytics`.
+
+Install:
+
+```bash
+npm i @vercel/analytics
+```
+
+Root layout integration:
+
+```tsx
+import { Analytics } from "@vercel/analytics/next"
+
+<Providers>{children}</Providers>
+<Analytics />
+```
+
+Verification after deploy:
+1. Deploy to Vercel.
+2. Visit your deployed site and navigate across multiple pages.
+3. Open Vercel Dashboard -> your project -> Analytics.
+4. Confirm page views appear after a short propagation delay.
+
+If no data appears:
+1. Confirm the deployed build includes `app/layout.tsx` with `<Analytics />`.
+2. Confirm `@vercel/analytics` exists in `package.json`/lockfile.
+3. Test without strict ad/content blockers.
+4. Verify the correct Vercel project/environment/time range is selected.
+5. Generate fresh visits and route navigation.
+
 ## Optional Footer Social Links
 
 To show social buttons in the landing footer, configure any of these:
