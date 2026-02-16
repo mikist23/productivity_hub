@@ -2,6 +2,7 @@ import OpenAI from "openai"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { buildAssistantSystemPrompt } from "@/lib/assistant/prompt"
+import { resolveAssistantProviderConfig } from "@/lib/assistant/provider"
 import { resolveRequestUserId } from "@/lib/resolve-user-id"
 
 const MAX_MESSAGES = 20
@@ -71,9 +72,9 @@ export async function POST(req: NextRequest) {
     return json({ error: "Unauthorized" }, 401)
   }
 
-  const openAiApiKey = process.env.OPENAI_API_KEY?.trim()
-  if (!openAiApiKey) {
-    return json({ error: "AI assistant is not configured on the server." }, 503)
+  const providerConfig = resolveAssistantProviderConfig()
+  if (!providerConfig) {
+    return json({ error: "AI assistant is not configured on the server (missing GEMINI_API_KEY)." }, 503)
   }
 
   const rateLimit = canProceed(userId)
@@ -95,10 +96,10 @@ export async function POST(req: NextRequest) {
     return json({ error: "Chat payload exceeds maximum size." }, 400)
   }
 
-  const model = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini"
+  const { apiKey, baseURL, model } = providerConfig
 
   try {
-    const client = new OpenAI({ apiKey: openAiApiKey })
+    const client = new OpenAI({ apiKey, baseURL })
 
     const completion = await client.chat.completions.create({
       model,
@@ -137,18 +138,18 @@ export async function POST(req: NextRequest) {
       return json(
         {
           error:
-            "The OpenAI account has no available quota or billing is not active. Please check OpenAI billing/usage and try again.",
+            "Gemini quota or rate limit was reached. Check Google AI Studio/GCP usage limits and try again.",
         },
         429
       )
     }
 
-    if (apiError?.status === 401) {
-      return json({ error: "OpenAI API key is invalid for this project environment." }, 503)
+    if (apiError?.status === 401 || apiError?.status === 403) {
+      return json({ error: "Gemini API key is invalid or does not have access in this environment." }, 503)
     }
 
     if (apiError?.status === 404 || apiError?.code === "model_not_found") {
-      return json({ error: `Configured OpenAI model is unavailable: ${model}` }, 400)
+      return json({ error: `Configured Gemini model is unavailable: ${model}` }, 400)
     }
 
     if (process.env.NODE_ENV !== "production") {

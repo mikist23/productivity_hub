@@ -91,9 +91,13 @@ Scope and behavior:
 Required environment variables:
 
 ```env
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4.1-mini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 ```
+
+`GEMINI_BASE_URL` is optional. If missing, the app defaults to:
+`https://generativelanguage.googleapis.com/v1beta/openai/`
 
 API endpoint:
 - `POST /api/assistant/chat`
@@ -103,6 +107,33 @@ API endpoint:
 Known limitations:
 - No direct app actions from chat.
 - Answers are constrained to implemented app capabilities.
+- Free-tier Gemini usage can hit quota/rate limits.
+
+### Gemini API Key Runbook
+
+1. Open Google AI Studio: `https://aistudio.google.com/`
+2. Sign in and open API keys.
+3. Create a key in your Google project.
+4. Copy the key (`AIza...`).
+5. In local `my-app/.env.local`, set:
+
+```env
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+```
+
+6. Restart local dev server after env changes.
+7. In Vercel: Project -> Settings -> Environment Variables.
+8. Add the same 3 variables for `Development`, `Preview`, and `Production`.
+9. Redeploy after saving vars.
+10. Validate in app: log in, open assistant, ask `hello`.
+11. If it fails, inspect `/api/assistant/chat` JSON error for exact category (quota, auth, model).
+
+### Billing and Quota Notes
+
+- Gemini may allow limited free-tier usage, but not unlimited.
+- If you get 429 responses, check usage limits/quota in AI Studio / Google Cloud billing.
 
 Manual UI QA checklist:
 - Open/close launcher on desktop and mobile.
