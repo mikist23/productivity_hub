@@ -30,6 +30,22 @@ function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status })
 }
 
+function asError(error: unknown) {
+  if (!error || typeof error !== "object") return null
+  const candidate = error as {
+    status?: unknown
+    code?: unknown
+    name?: unknown
+    message?: unknown
+  }
+  return {
+    status: typeof candidate.status === "number" ? candidate.status : undefined,
+    code: typeof candidate.code === "string" ? candidate.code : undefined,
+    name: typeof candidate.name === "string" ? candidate.name : undefined,
+    message: typeof candidate.message === "string" ? candidate.message : undefined,
+  }
+}
+
 function canProceed(userId: string, now = Date.now()) {
   const bucket = rateLimitStore.get(userId)
 
@@ -114,7 +130,31 @@ export async function POST(req: NextRequest) {
           }
         : undefined,
     })
-  } catch {
+  } catch (error) {
+    const apiError = asError(error)
+
+    if (apiError?.status === 429 || apiError?.code === "insufficient_quota") {
+      return json(
+        {
+          error:
+            "The OpenAI account has no available quota or billing is not active. Please check OpenAI billing/usage and try again.",
+        },
+        429
+      )
+    }
+
+    if (apiError?.status === 401) {
+      return json({ error: "OpenAI API key is invalid for this project environment." }, 503)
+    }
+
+    if (apiError?.status === 404 || apiError?.code === "model_not_found") {
+      return json({ error: `Configured OpenAI model is unavailable: ${model}` }, 400)
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Assistant chat error:", apiError ?? error)
+    }
+
     return json({ error: "Unable to answer right now. Please try again." }, 500)
   }
 }

@@ -99,4 +99,19 @@ describe("assistant chat API", () => {
     const rateLimited = await POST(makeRequest({ messages: [{ role: "user", content: "hello-13" }] }) as any)
     expect(rateLimited.status).toBe(429)
   })
+
+  it("maps OpenAI insufficient quota errors to 429", async () => {
+    resolveRequestUserIdMock.mockResolvedValueOnce("user-openai-rate")
+    mockCreate.mockRejectedValueOnce({
+      status: 429,
+      code: "insufficient_quota",
+      message: "quota exceeded",
+    })
+
+    const response = await POST(makeRequest({ messages: [{ role: "user", content: "hello" }] }) as any)
+    const payload = (await response.json()) as { error: string }
+
+    expect(response.status).toBe(429)
+    expect(payload.error.toLowerCase()).toContain("quota")
+  })
 })
