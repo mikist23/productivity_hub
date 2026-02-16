@@ -1,15 +1,57 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { BarChart3, TrendingUp, Flame, Target, Clock, Award, Calendar, Brain } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { BarChart3, TrendingUp, Flame, Target, Clock, Award, Calendar, Brain, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDashboard } from "@/app/dashboard/providers"
 import { StreakChart } from "@/components/charts/StreakChart"
 import { TimeChart } from "@/components/charts/TimeChart"
 import { GoalProgressChart } from "@/components/charts/GoalProgressChart"
 import { ProductivityChart } from "@/components/charts/ProductivityChart"
+import { minutesToLabel } from "@/lib/analytics-data"
+
+function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <p className="text-sm text-slate-400">{subtitle}</p>
+    </div>
+  )
+}
+
+function MetricCard({
+  title,
+  value,
+  note,
+  icon: Icon,
+  accent,
+}: {
+  title: string
+  value: string
+  note: string
+  icon: typeof Clock
+  accent: string
+}) {
+  return (
+    <Card className="group border-slate-700/70 bg-slate-900/70 text-slate-100 backdrop-blur-sm transition-colors hover:border-slate-600">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-400">{title}</p>
+            <p className="mt-1 text-3xl font-bold tracking-tight text-white">{value}</p>
+            <p className="mt-2 text-xs text-slate-400">{note}</p>
+          </div>
+          <div className={`rounded-xl border border-slate-700 p-2 ${accent}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function AnalyticsPage() {
+  const reduceMotion = useReducedMotion()
   const {
     focusSessions,
     goals,
@@ -20,236 +62,227 @@ export default function AnalyticsPage() {
     todayFocusMinutes
   } = useDashboard()
 
-  const formatMinutes = (minutes: number) => {
-    const hrs = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hrs <= 0) return `${mins}m`
-    if (mins <= 0) return `${hrs}h`
-    return `${hrs}h ${mins}m`
-  }
-
-  const completionRate = goals.length > 0 
-    ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100)
+  const completionRate = goals.length > 0
+    ? Math.round((goals.filter((g) => g.status === "completed").length / goals.length) * 100)
     : 0
 
-  const activeGoals = goals.filter(g => g.status === 'inprogress').length
+  const activeGoals = goals.filter((g) => g.status === "inprogress").length
+  const completedGoals = goals.filter((g) => g.status === "completed").length
   const totalTrackedTime = focusSessions.reduce((sum, s) => sum + s.minutes, 0)
-  const avgSessionLength = focusSessions.length > 0 
+  const avgSessionLength = focusSessions.length > 0
     ? Math.round(totalTrackedTime / focusSessions.length)
+    : 0
+  const averagePerActiveDay = focusStreaks.monthlyGoalDays > 0
+    ? Math.round(totalTrackedTime / focusStreaks.monthlyGoalDays)
     : 0
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-4"
+    <div className="mx-auto max-w-7xl space-y-10">
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: -12 }}
+        animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-7"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-            <BarChart3 className="h-6 w-6" />
+        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -bottom-28 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="relative">
+          <div className="mb-4 flex items-center gap-2 text-sm text-cyan-300">
+            <Sparkles className="h-4 w-4" />
+            <span>Performance Hub</span>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
-            <p className="text-muted-foreground">Track your productivity patterns and progress</p>
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-3">
+                <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-2 text-white">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Analytics & Insights</h1>
+              </div>
+              <p className="max-w-2xl text-slate-300">
+                Explore your 30-day momentum, weekly focus consistency, and goal performance with interactive charts.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-slate-200">
+                Today: {minutesToLabel(todayFocusMinutes)}
+              </span>
+              <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-slate-200">
+                Sessions: {focusSessions.length}
+              </span>
+              <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-slate-200">
+                Active Goals: {activeGoals}
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Key Metrics */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+        animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={{ delay: reduceMotion ? 0 : 0.08 }}
         className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
       >
-        <Card className="border-none bg-gradient-to-br from-orange-50 to-red-50 border-orange-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-orange-600">Current Streak</p>
-                <p className="text-3xl font-bold text-orange-700 mt-1">{focusStreaks.currentStreak}</p>
-                <p className="text-xs text-orange-600 mt-1">days</p>
-              </div>
-              <Flame className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Total Focus Time</p>
-                <p className="text-3xl font-bold text-blue-700 mt-1">{formatMinutes(totalTrackedTime)}</p>
-                <p className="text-xs text-blue-600 mt-1">all time</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-600">Goal Completion</p>
-                <p className="text-3xl font-bold text-green-700 mt-1">{completionRate}%</p>
-                <p className="text-xs text-green-600 mt-1">{goals.filter(g => g.status === 'completed').length} completed</p>
-              </div>
-              <Target className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600">Avg Session</p>
-                <p className="text-3xl font-bold text-purple-700 mt-1">{formatMinutes(avgSessionLength)}</p>
-                <p className="text-xs text-purple-600 mt-1">per session</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          title="Current Streak"
+          value={`${focusStreaks.currentStreak}d`}
+          note={`Longest run: ${focusStreaks.longestStreak} days`}
+          icon={Flame}
+          accent="text-orange-300"
+        />
+        <MetricCard
+          title="Total Focus Time"
+          value={minutesToLabel(totalTrackedTime)}
+          note={`Avg per active day: ${minutesToLabel(averagePerActiveDay)}`}
+          icon={Clock}
+          accent="text-sky-300"
+        />
+        <MetricCard
+          title="Goal Completion"
+          value={`${completionRate}%`}
+          note={`${completedGoals} completed out of ${goals.length}`}
+          icon={Target}
+          accent="text-emerald-300"
+        />
+        <MetricCard
+          title="Average Session"
+          value={minutesToLabel(avgSessionLength)}
+          note={avgSessionLength >= 60 ? "Strong deep-work rhythm" : "Try one longer session today"}
+          icon={TrendingUp}
+          accent="text-violet-300"
+        />
       </motion.div>
 
-      {/* Charts Grid */}
-      <div className="grid gap-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+      <div className="space-y-8">
+        <motion.section
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ delay: reduceMotion ? 0 : 0.14 }}
+          className="space-y-5"
         >
+          <SectionHeading
+            title="Core Charts"
+            subtitle="30-day activity consistency and short-horizon focus trends."
+          />
           <StreakChart streakHistory={streakHistory} />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
           <TimeChart focusSessions={focusSessions} />
-        </motion.div>
+        </motion.section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+        <motion.section
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ delay: reduceMotion ? 0 : 0.2 }}
+          className="space-y-5"
         >
+          <SectionHeading
+            title="Goal Analytics"
+            subtitle="Track progress quality across categories and status distribution."
+          />
           <GoalProgressChart goals={goals} />
-        </motion.div>
+        </motion.section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+        <motion.section
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ delay: reduceMotion ? 0 : 0.26 }}
+          className="space-y-5"
         >
+          <SectionHeading
+            title="Pattern Analytics"
+            subtitle="Understand your most productive hours and day-of-week rhythm."
+          />
           <ProductivityChart focusSessions={focusSessions} />
-        </motion.div>
+        </motion.section>
       </div>
 
-      {/* Insights Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+        animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={{ delay: reduceMotion ? 0 : 0.32 }}
+        className="space-y-4"
       >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              Productivity Insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {productivityInsights.peakProductivityHour !== null && (
-              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                <div className="text-sm font-medium text-blue-700">Peak Hour</div>
-                <div className="text-lg font-bold text-blue-800">
-                  {productivityInsights.peakProductivityHour}:00
+        <SectionHeading
+          title="Insights Summary"
+          subtitle="Quick recommendations from your current focus and streak data."
+        />
+        <div
+          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <Card className="border-slate-700/70 bg-slate-900/70 text-slate-100">
+            <CardHeader className="border-b border-slate-800/80 pb-3">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Brain className="h-5 w-5 text-cyan-300" />
+                Productivity Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-5">
+              {productivityInsights.peakProductivityHour !== null ? (
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-3">
+                  <div className="text-sm text-cyan-100">Peak Hour</div>
+                  <div className="text-lg font-bold text-white">
+                    {String(productivityInsights.peakProductivityHour).padStart(2, "0")}:00
+                  </div>
+                  <div className="text-xs text-slate-300">Schedule demanding tasks in this window.</div>
                 </div>
-                <div className="text-xs text-blue-600">
-                  Schedule important tasks around this time
+              ) : (
+                <div className="rounded-lg border border-slate-700 bg-slate-950/50 p-3 text-sm text-slate-400">
+                  No peak hour detected yet. Log more sessions with timestamps.
+                </div>
+              )}
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
+                <div className="text-sm text-emerald-100">Average Session</div>
+                <div className="text-lg font-bold text-white">
+                  {minutesToLabel(productivityInsights.averageSessionLength)}
+                </div>
+                <div className="text-xs text-slate-300">
+                  {productivityInsights.averageSessionLength >= 60 ? "Consistent deep work quality." : "Consider extending one session each day."}
                 </div>
               </div>
-            )}
-            
-            <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-              <div className="text-sm font-medium text-green-700">Average Session</div>
-              <div className="text-lg font-bold text-green-800">
-                {formatMinutes(productivityInsights.averageSessionLength)}
-              </div>
-              <div className="text-xs text-green-600">
-                {productivityInsights.averageSessionLength >= 60 ? 'Great focus!' : 'Try longer sessions'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5" />
-              Streak Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
-              <div className="text-sm font-medium text-orange-700">Current Streak</div>
-              <div className="text-lg font-bold text-orange-800">
-                {focusStreaks.currentStreak} days
+          <Card className="border-slate-700/70 bg-slate-900/70 text-slate-100">
+            <CardHeader className="border-b border-slate-800/80 pb-3">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Award className="h-5 w-5 text-amber-300" />
+                Streak Achievements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-5">
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3">
+                <div className="text-sm text-orange-100">Current Streak</div>
+                <div className="text-lg font-bold text-white">{focusStreaks.currentStreak} days</div>
+                <div className="text-xs text-slate-300">Protect your momentum </div>
               </div>
-              <div className="text-xs text-orange-600">
-                Keep it going! 🔥
+              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-3">
+                <div className="text-sm text-violet-100">Longest Streak</div>
+                <div className="text-lg font-bold text-white">{focusStreaks.longestStreak} days</div>
+                <div className="text-xs text-slate-300">Your all-time best consistency run.</div>
               </div>
-            </div>
-            
-            <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-              <div className="text-sm font-medium text-purple-700">Longest Streak</div>
-              <div className="text-lg font-bold text-purple-800">
-                {focusStreaks.longestStreak} days
-              </div>
-              <div className="text-xs text-purple-600">
-                Personal best record
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Weekly Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
-              <div className="text-sm font-medium text-indigo-700">Active Days</div>
-              <div className="text-lg font-bold text-indigo-800">
-                {focusStreaks.weeklyGoalDays}/7
+          <Card className="border-slate-700/70 bg-slate-900/70 text-slate-100">
+            <CardHeader className="border-b border-slate-800/80 pb-3">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Calendar className="h-5 w-5 text-indigo-300" />
+                Weekly Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-5">
+              <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3">
+                <div className="text-sm text-indigo-100">Active Days</div>
+                <div className="text-lg font-bold text-white">{focusStreaks.weeklyGoalDays}/7</div>
+                <div className="text-xs text-slate-300">Days with recorded focus this week.</div>
               </div>
-              <div className="text-xs text-indigo-600">
-                Days with focus this week
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
+                <div className="text-sm text-emerald-100">Goals Completed</div>
+                <div className="text-lg font-bold text-white">{goalStreaks.completedThisWeek}</div>
+                <div className="text-xs text-slate-300">Completed in the current week.</div>
               </div>
-            </div>
-            
-            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-              <div className="text-sm font-medium text-emerald-700">Goals Completed</div>
-              <div className="text-lg font-bold text-emerald-800">
-                {goalStreaks.completedThisWeek}
-              </div>
-              <div className="text-xs text-emerald-600">
-                This week's achievements
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </motion.div>
     </div>
   )
