@@ -78,6 +78,38 @@ API routes added:
 - `POST /api/payments/webhooks/:provider`
 - `POST /api/payments/bank/submit-proof`
 
+## AI Assistant (Dashboard Chatbot)
+
+The dashboard includes an AI assistant widget fixed in the bottom-right corner.
+
+Scope and behavior:
+- Available on dashboard routes.
+- Q&A guidance only (does not create/update/delete data).
+- Grounded on known app routes and features.
+- Session-only chat history.
+
+Required environment variables:
+
+```env
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+API endpoint:
+- `POST /api/assistant/chat`
+- Request body: `messages: Array<{ role: "user" | "assistant"; content: string }>`
+- Response: `{ reply: string, model: string }` or `{ error: string }`
+
+Known limitations:
+- No direct app actions from chat.
+- Answers are constrained to implemented app capabilities.
+
+Manual UI QA checklist:
+- Open/close launcher on desktop and mobile.
+- Send message, verify optimistic user message and assistant reply.
+- Clear chat resets panel state.
+- Confirm widget remains below critical modal stack (`z-[100]`).
+
 ## Optional Footer Social Links
 
 To show social buttons in the landing footer, configure any of these:

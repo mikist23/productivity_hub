@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { DashboardProvider } from "./providers"
 import { MobileNav } from "@/components/layout/MobileNav"
 import { DemoModeBanner } from "@/components/dashboard/DemoModeBanner"
+import { AssistantWidget } from "@/components/assistant/AssistantWidget"
 
 export default function DashboardLayout({
   children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
         <div className="mx-auto max-w-7xl p-6 md:p-8">
           <DashboardProvider>{children}</DashboardProvider>
         </div>
+        <AssistantWidget />
       </main>
     </div>
   )
