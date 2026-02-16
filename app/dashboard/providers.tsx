@@ -4,6 +4,7 @@ import React, { createContext, useContext } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { calculateFocusStreaks, getStreakHistory, calculateGoalStreaks, getProductivityInsights } from "@/lib/streaks"
 import { defaultCloudDashboardPayload, type CloudDashboardPayload } from "@/lib/dashboard-defaults"
+import { applyQuickAddToTimerState } from "@/lib/timer-quick-add"
 
 export type SkillStatus = "mastered" | "learning" | "inprogress"
 export type JobStatus = "applied" | "interview" | "offer" | "rejected"
@@ -216,6 +217,7 @@ export interface DashboardContextType {
   startTimer: (goalId?: string) => void
   pauseTimer: (goalId?: string) => void
   resetTimer: (goalId?: string) => void
+  adjustTimerSeconds: (deltaSeconds: number, goalId?: string) => void
   getTimerElapsedSeconds: (goalId?: string, nowMs?: number) => number
   logTimerSession: (goalId?: string) => void
 
@@ -974,6 +976,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }))
   }
 
+  const adjustTimerSeconds = (deltaSeconds: number, goalId?: string) => {
+      setTimerState(prev => applyQuickAddToTimerState(prev, deltaSeconds, goalId))
+  }
+
   const logTimerSession = (goalId?: string) => {
       const targetGoalId = goalId || timerState.selectedGoalId || ""
       const key = timerKey(targetGoalId)
@@ -1382,6 +1388,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       startTimer,
       pauseTimer,
       resetTimer,
+      adjustTimerSeconds,
       getTimerElapsedSeconds,
       logTimerSession,
       goals,

@@ -43,7 +43,6 @@ export default function TimePage() {
   const { 
     isDashboardHydrating,
     focusSessions, 
-    addFocusSession, 
     goals,
     focusStreaks,
     goalStreaks,
@@ -55,6 +54,7 @@ export default function TimePage() {
     startTimer,
     pauseTimer,
     resetTimer,
+    adjustTimerSeconds,
     getTimerElapsedSeconds,
     logTimerSession,
   } = useDashboard()
@@ -222,12 +222,8 @@ export default function TimePage() {
   }
   
   const quickAddTime = (minutes: number) => {
-    guard("log focus sessions", () => {
-      if (selectedGoalId) {
-        addFocusSession(minutes, `Quick add ${minutes}min`, selectedGoalId)
-      } else {
-        addFocusSession(minutes, `Quick add ${minutes}min`)
-      }
+    guard("track time sessions", () => {
+      adjustTimerSeconds(minutes * 60, selectedGoalId)
     })
   }
   
