@@ -31,7 +31,6 @@ export function getBuyMeCoffeeUrl(): string | null {
     return null
   }
 
-CONSOLE_LOGGER.debug("Using Buy Me a Coffee URL:", trimmed)
   return trimmed
 }
 
