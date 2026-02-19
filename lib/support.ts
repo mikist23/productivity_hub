@@ -33,3 +33,4 @@ export function getBuyMeCoffeeUrl(): string | null {
 
   return trimmed
 }
+
